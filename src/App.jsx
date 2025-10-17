@@ -11,6 +11,8 @@ import Article from './pages/Article'
 import AIWriter from './pages/AIWriter'
 import ArticleWriter from './pages/ArticleWriter'
 import WritingTool from './pages/WritingTool'
+import Privacy from './pages/Privacy'
+import Terms from './pages/Terms'
 
 function AuthCallbackHandler() {
   const { setAuth } = useAuth()
@@ -52,6 +54,8 @@ function App() {
             <Route path="/ai-writer" element={<AIWriter />} />
             <Route path="/article-writer" element={<ArticleWriter />} />
             <Route path="/writing-tool" element={<WritingTool />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
