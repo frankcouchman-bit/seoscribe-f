@@ -13,20 +13,25 @@
 
 ---
 
-## ✅ **FINAL DEPLOYMENT CHECKLIST**
+## 📋 **ALTERNATIVE: Delete netlify.toml and use Netlify UI**
 
-### **Before Deploying:**
+If you continue having issues, **delete the `netlify.toml` file** and configure directly in Netlify dashboard:
 
-1. **Update Environment Variables in Netlify:**
+### **Netlify Dashboard Settings:**
+
+1. **Build Settings:**
+   - Build command: `npm run build`
+   - Publish directory: `dist`
+   - Node version: `18`
+
+2. **Redirects (_redirects file):**
+   Create `public/_redirects`:
 ```
-   VITE_API_URL = https://seoscribe.frank-couchman.workers.dev
-   VITE_SITE_URL = https://seoscribe.pro
+   /*    /index.html   200
 ```
 
-2. **Replace Google Analytics ID:**
-   - Open `index.html`
-   - Replace `G-XXXXXXXXXX` with your actual GA4 tracking ID
-
-3. **Verify Backend URLs in Cloudflare:**
+3. **Environment Variables:**
+   Add in Netlify Dashboard → Site settings → Environment variables:
 ```
-   FRONTEND_URL = https://seoscribe.pro, https://glistening-stroopwafel-16e9e6.netlify.app
+   VITE_API_URL=https://seoscribe.frank-couchman.workers.dev
+   VITE_SITE_URL=https://seoscribe.pro
