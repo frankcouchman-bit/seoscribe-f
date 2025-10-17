@@ -3,18 +3,20 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  optimizeDeps: {
+    esbuildOptions: {
+      target: 'esnext'
+    }
+  },
   build: {
     outDir: 'dist',
     sourcemap: false,
-    minify: 'terser',
     target: 'esnext',
+    minify: 'esbuild',
     rollupOptions: {
       output: {
         manualChunks: undefined
       }
     }
-  },
-  esbuild: {
-    target: 'esnext'
   }
 })
