@@ -6,7 +6,8 @@ export const useAuth = create((set, get) => ({
   plan: 'free',
   usage: {
     today: { generations: 0, tools: {} },
-    month: { generations: 0 }
+    month: { generations: 0 },
+    demo: { used: false }
   },
   loading: true,
 
@@ -22,7 +23,21 @@ export const useAuth = create((set, get) => ({
   checkAuth: async () => {
     const token = localStorage.getItem('authToken')
     if (!token) {
-      set({ loading: false, user: null })
+      // Check demo usage for non-authenticated users
+      try {
+        const demoUsage = await api.checkDemoUsage()
+        set({ 
+          loading: false, 
+          user: null,
+          usage: {
+            today: { generations: 0, tools: {} },
+            month: { generations: 0 },
+            demo: { used: demoUsage.used, canGenerate: !demoUsage.used }
+          }
+        })
+      } catch (error) {
+        set({ loading: false, user: null })
+      }
       return
     }
 
@@ -33,7 +48,8 @@ export const useAuth = create((set, get) => ({
         plan: profile.plan || 'free',
         usage: profile.usage || {
           today: { generations: 0, tools: {} },
-          month: { generations: 0 }
+          month: { generations: 0 },
+          demo: { used: false }
         },
         loading: false 
       })
@@ -53,7 +69,8 @@ export const useAuth = create((set, get) => ({
         plan: profile.plan || 'free',
         usage: profile.usage || {
           today: { generations: 0, tools: {} },
-          month: { generations: 0 }
+          month: { generations: 0 },
+          demo: { used: false }
         }
       })
       return profile
@@ -68,7 +85,15 @@ export const useAuth = create((set, get) => ({
   },
 
   canGenerate: () => {
-    const { plan, usage } = get()
+    const { plan, usage, user } = get()
+    
+    // Non-authenticated users: 1 per month
+    if (!user) {
+      return !usage.demo?.used
+    }
+    
+    // Free plan: 1 per day
+    // Pro plan: 15 per day
     const limit = plan === 'pro' ? 15 : 1
     return (usage?.today?.generations || 0) < limit
   },
@@ -86,7 +111,7 @@ export const useAuth = create((set, get) => ({
     set({ 
       user: null, 
       plan: 'free', 
-      usage: { today: { generations: 0, tools: {} }, month: { generations: 0 } } 
+      usage: { today: { generations: 0, tools: {} }, month: { generations: 0 }, demo: { used: false } } 
     })
     window.location.href = '/'
   }
