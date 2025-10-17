@@ -135,9 +135,7 @@ export default function Article() {
               src={heroImage}
               alt={article.title}
               className="w-full h-64 object-cover rounded-xl mb-6"
-              onError={(e) => {
-                e.target.style.display = 'none'
-              }}
+              onError={(e) => { e.target.style.display = 'none' }}
             />
           ) : (
             <div className="w-full h-64 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-xl mb-6 flex items-center justify-center">
@@ -169,9 +167,7 @@ export default function Article() {
             <div key={idx} className="mb-8">
               <h2 className="text-2xl font-bold mb-4 text-purple-300">{section.heading}</h2>
               {section.paragraphs?.map((para, pIdx) => (
-                <p key={pIdx} className="text-white/80 mb-4 leading-relaxed">
-                  {para}
-                </p>
+                <p key={pIdx} className="text-white/80 mb-4 leading-relaxed">{para}</p>
               ))}
             </div>
           ))}
@@ -180,24 +176,9 @@ export default function Article() {
             <div className="mt-12 pt-8 border-t border-white/10">
               <h2 className="text-2xl font-bold mb-6">🔗 Internal Links</h2>
               <div className="grid gap-3">
-                {article.internal_links.map((link, idx) => {
-                  const linkUrl = link.url || '#'
-                  const linkTitle = link.suggested_anchor || link.title || 'Link'
-                  return (
-                    
-                      key={idx}
-                      href={linkUrl}
-                      target="_blank"
-                      rel="noopener"
-                      className="glass rounded-lg p-4 hover:bg-white/10 transition-colors block"
-                    >
-                      <div className="font-semibold text-blue-400 mb-1">
-                        {linkTitle}
-                      </div>
-                      <div className="text-xs text-white/50 truncate">{linkUrl}</div>
-                    </a>
-                  )
-                })}
+                {article.internal_links.map((link, idx) => (
+                  <InternalLinkItem key={idx} link={link} />
+                ))}
               </div>
             </div>
           )}
@@ -246,12 +227,7 @@ export default function Article() {
                 {article.citations.map((citation, idx) => (
                   <div key={idx} className="text-sm">
                     <span className="text-purple-400 font-bold">[{idx + 1}] </span>
-                    <a 
-                      href={citation.url || '#'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-400 hover:underline"
-                    >
+                    <a href={citation.url || '#'} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">
                       {citation.title || 'Source'}
                     </a>
                   </div>
@@ -262,6 +238,18 @@ export default function Article() {
         </motion.div>
       </div>
     </div>
+  )
+}
+
+function InternalLinkItem({ link }) {
+  const linkUrl = link.url || '#'
+  const linkTitle = link.suggested_anchor || link.title || 'Link'
+  
+  return (
+    <a href={linkUrl} target="_blank" rel="noopener" className="glass rounded-lg p-4 hover:bg-white/10 transition-colors block">
+      <div className="font-semibold text-blue-400 mb-1">{linkTitle}</div>
+      <div className="text-xs text-white/50 truncate">{linkUrl}</div>
+    </a>
   )
 }
 
