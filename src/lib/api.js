@@ -37,7 +37,7 @@ class APIClient {
     return this.request('/auth/magic-link', {
       method: 'POST',
       body: JSON.stringify({ 
-        email, 
+        email,
         redirect: window.location.origin
       })
     })
@@ -63,7 +63,7 @@ class APIClient {
     return this.request('/api/stripe/create-checkout', {
       method: 'POST',
       body: JSON.stringify({ 
-        successUrl: successUrl || `${window.location.origin}?upgrade=success`,
+        successUrl: successUrl || `${window.location.origin}/success`,
         cancelUrl: cancelUrl || window.location.origin
       })
     })
@@ -111,33 +111,6 @@ class APIClient {
   async deleteArticle(id) {
     return this.request(`/api/articles/${id}`, {
       method: 'DELETE'
-    })
-  }
-
-  // ============ ARTICLE EXPANSION ============
-  async expandArticle(data) {
-    return this.request('/api/expand', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    })
-  }
-
-  async expandSection(data) {
-    return this.request('/api/tools/section', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    })
-  }
-
-  // ============ TEMPLATES ============
-  async getTemplates() {
-    return this.request('/api/templates')
-  }
-
-  async generateFromTemplate(data) {
-    return this.request('/api/templates/generate', {
-      method: 'POST',
-      body: JSON.stringify(data)
     })
   }
 
