@@ -47,8 +47,8 @@ export default function Dashboard() {
   if (!user) return null
 
   const stats = [
-    { label: 'Today', value: usage.today.generations, max: plan === 'pro' ? 15 : 1, icon: Zap },
-    { label: 'This Month', value: usage.month.generations, icon: TrendingUp },
+    { label: 'Today', value: usage?.today?.generations || 0, max: plan === 'pro' ? 15 : 1, icon: Zap },
+    { label: 'This Month', value: usage?.month?.generations || 0, icon: TrendingUp },
   ]
 
   return (
@@ -75,7 +75,7 @@ export default function Dashboard() {
               </div>
               <div>
                 <div className="font-bold text-lg">Upgrade to Pro</div>
-                <div className="text-sm text-white/70">Get 15 articles/day + unlimited exports for $29/month</div>
+                <div className="text-sm text-white/70">Get 15 articles/day + unlimited exports for $24/month</div>
               </div>
             </div>
             <motion.button
