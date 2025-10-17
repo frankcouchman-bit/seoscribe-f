@@ -9,3 +9,24 @@
 
 [build.environment]
   NODE_VERSION = "18"
+```
+
+---
+
+## ✅ **FINAL DEPLOYMENT CHECKLIST**
+
+### **Before Deploying:**
+
+1. **Update Environment Variables in Netlify:**
+```
+   VITE_API_URL = https://seoscribe.frank-couchman.workers.dev
+   VITE_SITE_URL = https://seoscribe.pro
+```
+
+2. **Replace Google Analytics ID:**
+   - Open `index.html`
+   - Replace `G-XXXXXXXXXX` with your actual GA4 tracking ID
+
+3. **Verify Backend URLs in Cloudflare:**
+```
+   FRONTEND_URL = https://seoscribe.pro, https://glistening-stroopwafel-16e9e6.netlify.app
