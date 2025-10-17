@@ -2,14 +2,17 @@ import { motion } from 'framer-motion'
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useArticles } from '../hooks/useArticles'
-import { ArrowLeft, Save, Download, Copy } from 'lucide-react'
+import { ArrowLeft, Save, Download, Copy, Plus, Edit2 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
+import { api } from '../lib/api'
 
 export default function Article() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { currentArticle, saveArticle } = useArticles()
   const [saving, setSaving] = useState(false)
+  const [expanding, setExpanding] = useState(false)
+  const [editingSection, setEditingSection] = useState(null)
 
   const article = currentArticle
 
@@ -33,10 +36,50 @@ export default function Article() {
     setSaving(true)
     try {
       await saveArticle(article)
+      toast.success('💾 Article saved!')
     } catch (error) {
+      toast.error('Failed to save')
       console.error('Save failed:', error)
     }
     setSaving(false)
+  }
+
+  const handleExpand = async () => {
+    setExpanding(true)
+    try {
+      const expanded = await api.expandArticle({
+        context: generateMarkdown(article),
+        article_json: article,
+        article_id: id
+      })
+      
+      // Update current article with expanded version
+      currentArticle.sections = expanded.sections
+      currentArticle.word_count = expanded.word_count
+      currentArticle.reading_time_minutes = expanded.reading_time_minutes
+      
+      toast.success('✨ Article expanded!')
+    } catch (error) {
+      toast.error(error.message || 'Expansion failed')
+    }
+    setExpanding(false)
+  }
+
+  const handleExpandSection = async (sectionIndex, instruction) => {
+    try {
+      const section = article.sections[sectionIndex]
+      const expanded = await api.expandSection({
+        section,
+        instruction: instruction || 'Expand this section with more detail and examples'
+      })
+      
+      // Update the section
+      article.sections[sectionIndex] = expanded
+      toast.success('✨ Section expanded!')
+      setEditingSection(null)
+    } catch (error) {
+      toast.error('Failed to expand section')
+    }
   }
 
   const handleCopy = () => {
@@ -57,6 +100,8 @@ export default function Article() {
     toast.success('⬇️ Downloaded!')
   }
 
+  const canExpand = !article.expand_controller || article.expand_controller.can_expand
+
   return (
     <div className="min-h-screen pt-8 pb-16">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -70,6 +115,18 @@ export default function Article() {
           </button>
 
           <div className="flex gap-2">
+            {canExpand && (
+              <motion.button
+                onClick={handleExpand}
+                disabled={expanding}
+                className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg font-semibold flex items-center gap-2"
+                whileHover={{ scale: expanding ? 1 : 1.05 }}
+                whileTap={{ scale: expanding ? 1 : 0.95 }}
+              >
+                <Plus className="w-4 h-4" />
+                {expanding ? 'Expanding...' : 'Expand'}
+              </motion.button>
+            )}
             <motion.button
               onClick={handleCopy}
               className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg font-semibold flex items-center gap-2"
@@ -127,8 +184,17 @@ export default function Article() {
           </div>
 
           {article.sections?.map((section, idx) => (
-            <div key={idx} className="mb-8">
-              <h2 className="text-2xl font-bold mb-4 text-purple-300">{section.heading}</h2>
+            <div key={idx} className="mb-8 group relative">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold text-purple-300">{section.heading}</h2>
+                <button
+                  onClick={() => handleExpandSection(idx)}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity px-3 py-1 bg-white/10 hover:bg-white/20 rounded-lg text-sm flex items-center gap-2"
+                >
+                  <Edit2 className="w-3 h-3" />
+                  Expand
+                </button>
+              </div>
               {section.paragraphs?.map((para, pIdx) => (
                 <p key={pIdx} className="text-white/80 mb-4 leading-relaxed">
                   {para}
