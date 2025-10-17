@@ -10,9 +10,11 @@ export default function ArticleLibrary() {
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState('date')
 
-  const filteredArticles = articles
+  const safeArticles = Array.isArray(articles) ? articles : []
+
+  const filteredArticles = safeArticles
     .filter(article => 
-      article.title.toLowerCase().includes(searchQuery.toLowerCase())
+      article?.title?.toLowerCase().includes(searchQuery.toLowerCase())
     )
     .sort((a, b) => {
       if (sortBy === 'date') {
@@ -20,7 +22,7 @@ export default function ArticleLibrary() {
       } else if (sortBy === 'words') {
         return (b.word_count || 0) - (a.word_count || 0)
       } else {
-        return a.title.localeCompare(b.title)
+        return (a.title || '').localeCompare(b.title || '')
       }
     })
 
@@ -37,7 +39,7 @@ export default function ArticleLibrary() {
     )
   }
 
-  if (articles.length === 0) {
+  if (safeArticles.length === 0) {
     return (
       <div className="glass rounded-2xl p-12 text-center">
         <FileText className="w-16 h-16 text-white/30 mx-auto mb-4" />
@@ -49,7 +51,6 @@ export default function ArticleLibrary() {
 
   return (
     <div className="space-y-6">
-      {/* Search & Filter */}
       <div className="flex gap-4">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" />
@@ -72,7 +73,6 @@ export default function ArticleLibrary() {
         </select>
       </div>
 
-      {/* Articles */}
       <div className="space-y-4">
         {filteredArticles.length === 0 ? (
           <div className="glass rounded-2xl p-8 text-center">
@@ -89,11 +89,11 @@ export default function ArticleLibrary() {
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
-                  <h4 className="text-lg font-bold mb-2">{article.title}</h4>
+                  <h4 className="text-lg font-bold mb-2">{article.title || 'Untitled'}</h4>
                   <div className="flex items-center gap-4 text-sm text-white/60">
                     <span className="flex items-center gap-1">
                       <FileText className="w-4 h-4" />
-                      {article.word_count} words
+                      {article.word_count || 0} words
                     </span>
                     <span className="flex items-center gap-1">
                       <Clock className="w-4 h-4" />
