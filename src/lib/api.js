@@ -32,6 +32,7 @@ class APIClient {
     return response.json()
   }
 
+  // ============ AUTH ============
   async requestMagicLink(email) {
     return this.request('/auth/magic-link', {
       method: 'POST',
@@ -50,6 +51,34 @@ class APIClient {
     return this.request('/api/profile')
   }
 
+  async updateProfile(data) {
+    return this.request('/api/profile', {
+      method: 'PATCH',
+      body: JSON.stringify(data)
+    })
+  }
+
+  // ============ STRIPE ============
+  async createCheckoutSession(successUrl, cancelUrl) {
+    return this.request('/api/stripe/create-checkout', {
+      method: 'POST',
+      body: JSON.stringify({ 
+        successUrl: successUrl || `${window.location.origin}?upgrade=success`,
+        cancelUrl: cancelUrl || window.location.origin
+      })
+    })
+  }
+
+  async createPortalSession(returnUrl) {
+    return this.request('/api/stripe/portal', {
+      method: 'POST',
+      body: JSON.stringify({ 
+        returnUrl: returnUrl || window.location.origin
+      })
+    })
+  }
+
+  // ============ ARTICLES ============
   async generateArticle(data) {
     return this.request('/api/draft', {
       method: 'POST',
@@ -61,9 +90,20 @@ class APIClient {
     return this.request('/api/articles')
   }
 
+  async getArticle(id) {
+    return this.request(`/api/articles/${id}`)
+  }
+
   async saveArticle(data) {
     return this.request('/api/articles', {
       method: 'POST',
+      body: JSON.stringify(data)
+    })
+  }
+
+  async updateArticle(id, data) {
+    return this.request(`/api/articles/${id}`, {
+      method: 'PATCH',
       body: JSON.stringify(data)
     })
   }
@@ -74,6 +114,34 @@ class APIClient {
     })
   }
 
+  // ============ ARTICLE EXPANSION ============
+  async expandArticle(data) {
+    return this.request('/api/expand', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    })
+  }
+
+  async expandSection(data) {
+    return this.request('/api/tools/section', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    })
+  }
+
+  // ============ TEMPLATES ============
+  async getTemplates() {
+    return this.request('/api/templates')
+  }
+
+  async generateFromTemplate(data) {
+    return this.request('/api/templates/generate', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    })
+  }
+
+  // ============ SEO TOOLS ============
   async analyzeHeadline(headline) {
     return this.request('/api/tools/headline-analyzer', {
       method: 'POST',
@@ -102,10 +170,10 @@ class APIClient {
     })
   }
 
-  async analyzeCompetitors(keyword) {
+  async analyzeCompetitors(keyword, region) {
     return this.request('/api/tools/competitor-analysis', {
       method: 'POST',
-      body: JSON.stringify({ keyword })
+      body: JSON.stringify({ keyword, region })
     })
   }
 
@@ -116,10 +184,10 @@ class APIClient {
     })
   }
 
-  async generateBrief(keyword) {
+  async generateBrief(keyword, region) {
     return this.request('/api/tools/content-brief', {
       method: 'POST',
-      body: JSON.stringify({ keyword })
+      body: JSON.stringify({ keyword, region })
     })
   }
 
@@ -127,6 +195,14 @@ class APIClient {
     return this.request('/api/tools/meta-description', {
       method: 'POST',
       body: JSON.stringify({ content })
+    })
+  }
+
+  // ============ AI ASSISTANT ============
+  async getAIAssistance(prompt, context, keyword) {
+    return this.request('/api/ai-assistant', {
+      method: 'POST',
+      body: JSON.stringify({ prompt, context, keyword })
     })
   }
 }
