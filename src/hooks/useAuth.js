@@ -1,118 +1,111 @@
-import { create } from 'zustand'
-import { api } from '../lib/api'
+import { motion } from 'framer-motion'
+import { useState, useEffect } from 'react'
+import { Sparkles, Zap, Check, Star, FileText, TrendingUp, Globe, Search, BarChart, ChevronDown, Lock } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { useArticles } from '../hooks/useArticles'
+import { useAuth } from '../hooks/useAuth'
+import AuthModal from '../components/auth/AuthModal'
+import { toast } from 'react-hot-toast'
 
-export const useAuth = create((set, get) => ({
-  user: null,
-  plan: 'free',
-  usage: {
-    today: { generations: 0, tools: {} },
-    month: { generations: 0 },
-    demo: { used: false }
-  },
-  loading: true,
+export default function Home() {
+  const [topic, setTopic] = useState('')
+  const [websiteUrl, setWebsiteUrl] = useState('')
+  const [showAuthModal, setShowAuthModal] = useState(false)
+  const [openFaq, setOpenFaq] = useState(null)
+  const { generateArticle, generating } = useArticles()
+  const { user, usage, canGenerate, checkAuth } = useAuth()
+  const navigate = useNavigate()
 
-  setAuth: (token, refreshToken) => {
-    if (token) {
-      localStorage.setItem('authToken', token)
-      if (refreshToken) {
-        localStorage.setItem('refreshToken', refreshToken)
-      }
-    }
-  },
+  useEffect(() => {
+    checkAuth()
+  }, [checkAuth])
 
-  checkAuth: async () => {
-    const token = localStorage.getItem('authToken')
-    if (!token) {
-      // Check demo usage for non-authenticated users
-      try {
-        const demoUsage = await api.checkDemoUsage()
-        set({ 
-          loading: false, 
-          user: null,
-          usage: {
-            today: { generations: 0, tools: {} },
-            month: { generations: 0 },
-            demo: { used: demoUsage.used, canGenerate: !demoUsage.used }
-          }
-        })
-      } catch (error) {
-        set({ loading: false, user: null })
+  const canCreate = canGenerate()
+  const isDemoUser = !user
+  const demoUsed = usage?.demo?.used
+
+  const handleGenerate = async (e) => {
+    e.preventDefault()
+    if (!topic.trim()) return
+
+    if (!canCreate) {
+      if (isDemoUser) {
+        toast.error('Demo limit reached! Sign up for 1 article/day free.', { duration: 5000 })
+        setShowAuthModal(true)
+      } else {
+        toast.error('Daily limit reached! Upgrade to Pro for 15 articles/day.', { duration: 5000 })
       }
       return
     }
 
     try {
-      const profile = await api.getProfile()
-      set({ 
-        user: profile.user || profile,
-        plan: profile.plan || 'free',
-        usage: profile.usage || {
-          today: { generations: 0, tools: {} },
-          month: { generations: 0 },
-          demo: { used: false }
-        },
-        loading: false 
-      })
+      await generateArticle(topic, websiteUrl)
+      navigate('/article/new')
     } catch (error) {
-      console.error('Auth check failed:', error)
-      localStorage.removeItem('authToken')
-      localStorage.removeItem('refreshToken')
-      set({ user: null, loading: false, plan: 'free' })
+      if (error.message.includes('Demo limit') || error.message.includes('month')) {
+        setShowAuthModal(true)
+      } else if (error.message.includes('Sign in') || error.message.includes('Unauthorized')) {
+        setShowAuthModal(true)
+      }
     }
-  },
-
-  fetchProfile: async () => {
-    try {
-      const profile = await api.getProfile()
-      set({ 
-        user: profile.user || profile,
-        plan: profile.plan || 'free',
-        usage: profile.usage || {
-          today: { generations: 0, tools: {} },
-          month: { generations: 0 },
-          demo: { used: false }
-        }
-      })
-      return profile
-    } catch (error) {
-      console.error('Failed to fetch profile:', error)
-    }
-  },
-
-  refreshUsage: async () => {
-    const profile = await get().fetchProfile()
-    return profile
-  },
-
-  canGenerate: () => {
-    const { plan, usage, user } = get()
-    
-    // Non-authenticated users: 1 per month
-    if (!user) {
-      return !usage.demo?.used
-    }
-    
-    // Free plan: 1 per day
-    // Pro plan: 15 per day
-    const limit = plan === 'pro' ? 15 : 1
-    return (usage?.today?.generations || 0) < limit
-  },
-
-  canUseTool: (toolName) => {
-    const { plan, usage } = get()
-    const limit = plan === 'pro' ? 10 : 1
-    const used = usage?.today?.tools?.[toolName] || 0
-    return used < limit
-  },
-
-  signOut: () => {
-    localStorage.removeItem('authToken')
-    localStorage.removeItem('refreshToken')
-    set({ 
-      user: null, 
-      plan: 'free', 
-      usage: { today: { generations: 0, tools: {} }, month: { generations: 0 }, demo: { used: false } } 
-    })
-    window.location.href = '/'
   }
-}))
+
+  const faqs = [
+    {
+      q: "What makes SEOScribe different from other AI writers?",
+      a: "SEOScribe generates complete articles with citations, hero images, internal links, FAQs, and social media posts - all optimized for SEO. We research top-ranking content to create articles that actually rank."
+    },
+    {
+      q: "How does the free plan work?",
+      a: "Free users get 1 article per day and 1 use of each SEO tool per day. No credit card required. Upgrade to Pro anytime for 15 articles/day and 10 tool uses per tool/day."
+    },
+    {
+      q: "Can I try it without signing up?",
+      a: "Yes! You can generate 1 demo article per month without creating an account. After that, sign up for 1 free article per day."
+    },
+    {
+      q: "What AI models do you use?",
+      a: "We use Claude 3.5 Sonnet for article generation and Gemini 2.5 Flash for image generation, ensuring the highest quality content and visuals."
+    },
+    {
+      q: "Can I use the articles commercially?",
+      a: "Yes! You own all content generated by SEOScribe. Use it on your blog, client projects, or anywhere else without restrictions."
+    },
+    {
+      q: "Do the articles include real research?",
+      a: "Yes! We use Serper API to research top-ranking content for your topic, analyze competitor articles, and cite authoritative sources automatically."
+    },
+    {
+      q: "Can I cancel my Pro subscription anytime?",
+      a: "Absolutely! Cancel anytime through your account settings. No questions asked, no cancellation fees."
+    }
+  ]
+
+  return (
+    <div className="min-h-screen">
+      {/* Hero Section */}
+      <section className="relative pt-20 pb-32 overflow-hidden">
+        {/* Animated Background */}
+        <div className="absolute inset-0 pointer-events-none">
+          <motion.div
+            className="absolute top-20 left-10 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl"
+            animate={{ 
+              scale: [1, 1.2, 1], 
+              opacity: [0.3, 0.5, 0.3],
+              x: [0, 50, 0],
+              y: [0, 30, 0]
+            }}
+            transition={{ duration: 8, repeat: Infinity }}
+          />
+          <motion.div
+            className="absolute bottom-20 right-10 w-96 h-96 bg-pink-500/20 rounded-full blur-3xl"
+            animate={{ 
+              scale: [1.2, 1, 1.2], 
+              opacity: [0.5, 0.3, 0.5],
+              x: [0, -50, 0],
+              y: [0, -30, 0]
+            }}
+            transition={{ duration: 8, repeat: Infinity, delay: 1 }}
+          />
+          <motion.div
+            cl
