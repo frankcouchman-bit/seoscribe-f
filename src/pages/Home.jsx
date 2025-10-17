@@ -1,11 +1,10 @@
 import { motion } from 'framer-motion'
-import { useState } from 'react'
-import { Sparkles, Zap, Check, Star, FileText, TrendingUp, Globe, Search, BarChart, ChevronDown } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Sparkles, Zap, Check, Star, FileText, TrendingUp, Globe, Search, BarChart, ChevronDown, Lock } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useArticles } from '../hooks/useArticles'
 import { useAuth } from '../hooks/useAuth'
 import AuthModal from '../components/auth/AuthModal'
-import { api } from '../lib/api'
 import { toast } from 'react-hot-toast'
 
 export default function Home() {
@@ -14,34 +13,40 @@ export default function Home() {
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [openFaq, setOpenFaq] = useState(null)
   const { generateArticle, generating } = useArticles()
-  const { user } = useAuth()
+  const { user, usage, canGenerate, checkAuth } = useAuth()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    checkAuth()
+  }, [checkAuth])
+
+  const canCreate = canGenerate()
+  const isDemoUser = !user
+  const demoUsed = usage?.demo?.used
 
   const handleGenerate = async (e) => {
     e.preventDefault()
     if (!topic.trim()) return
 
+    if (!canCreate) {
+      if (isDemoUser) {
+        toast.error('Demo limit reached! Sign up for 1 article/day free.', { duration: 5000 })
+        setShowAuthModal(true)
+      } else {
+        toast.error('Daily limit reached! Upgrade to Pro for 15 articles/day.', { duration: 5000 })
+      }
+      return
+    }
+
     try {
       await generateArticle(topic, websiteUrl)
       navigate('/article/new')
     } catch (error) {
-      if (error.message.includes('Sign in') || error.message.includes('Unauthorized')) {
+      if (error.message.includes('Demo limit') || error.message.includes('month')) {
+        setShowAuthModal(true)
+      } else if (error.message.includes('Sign in') || error.message.includes('Unauthorized')) {
         setShowAuthModal(true)
       }
-    }
-  }
-
-  const handleUpgrade = async () => {
-    if (!user) {
-      setShowAuthModal(true)
-      return
-    }
-    
-    try {
-      const { url } = await api.createCheckoutSession()
-      window.location.href = url
-    } catch (error) {
-      toast.error('Failed to start checkout')
     }
   }
 
@@ -53,6 +58,10 @@ export default function Home() {
     {
       q: "How does the free plan work?",
       a: "Free users get 1 article per day and 1 use of each SEO tool per day. No credit card required. Upgrade to Pro anytime for 15 articles/day and 10 tool uses per tool/day."
+    },
+    {
+      q: "Can I try it without signing up?",
+      a: "Yes! You can generate 1 demo article per month without creating an account. After that, sign up for 1 free article per day."
     },
     {
       q: "What AI models do you use?",
@@ -148,33 +157,48 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
+              {!canCreate && isDemoUser && (
+                <div className="mb-4 bg-orange-500/20 border border-orange-500/30 rounded-lg p-3 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-orange-400" />
+                    <span className="text-orange-400 font-bold">Demo Used This Month</span>
+                  </div>
+                  <p className="text-white/70 mt-1">Sign up for 1 free article per day!</p>
+                </div>
+              )}
+
               <input
                 type="text"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
                 placeholder="Enter your topic (e.g., Best Project Management Tools 2025)"
-                className="w-full px-4 py-4 mb-4 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/50 transition-all"
-                disabled={generating}
+                className="w-full px-4 py-4 mb-4 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/50 transition-all disabled:opacity-50"
+                disabled={generating || (!canCreate && isDemoUser)}
               />
               <input
                 type="text"
                 value={websiteUrl}
                 onChange={(e) => setWebsiteUrl(e.target.value)}
                 placeholder="Your website URL (optional, for internal links)"
-                className="w-full px-4 py-4 mb-4 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/50 transition-all"
-                disabled={generating}
+                className="w-full px-4 py-4 mb-4 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/50 transition-all disabled:opacity-50"
+                disabled={generating || (!canCreate && isDemoUser)}
               />
               <motion.button
                 type="submit"
                 className="w-full py-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-bold text-lg shadow-lg shadow-purple-500/50 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                whileHover={{ scale: generating ? 1 : 1.02 }}
-                whileTap={{ scale: generating ? 1 : 0.98 }}
-                disabled={generating || !topic.trim()}
+                whileHover={{ scale: (generating || (!canCreate && isDemoUser)) ? 1 : 1.02 }}
+                whileTap={{ scale: (generating || (!canCreate && isDemoUser)) ? 1 : 0.98 }}
+                disabled={generating || !topic.trim() || (!canCreate && isDemoUser)}
               >
                 {generating ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     <span>Generating...</span>
+                  </>
+                ) : !canCreate && isDemoUser ? (
+                  <>
+                    <Lock className="w-5 h-5" />
+                    <span>Sign Up for Free Articles</span>
                   </>
                 ) : (
                   <>
@@ -184,7 +208,12 @@ export default function Home() {
                 )}
               </motion.button>
               <p className="text-white/60 text-sm mt-4">
-                Free forever: 1 article/day • Pro: 15/day + unlimited exports
+                {isDemoUser 
+                  ? demoUsed 
+                    ? "Demo used. Sign up for 1 free article/day!"
+                    : "Try free: 1 demo article/month • Sign up: 1 article/day"
+                  : "Free forever: 1 article/day • Pro: 15/day + unlimited exports"
+                }
               </p>
             </motion.form>
           </div>
@@ -402,7 +431,7 @@ export default function Home() {
                 </li>
               </ul>
               <motion.button
-                onClick={handleUpgrade}
+                onClick={() => user ? navigate('/dashboard') : setShowAuthModal(true)}
                 className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-bold shadow-lg"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
