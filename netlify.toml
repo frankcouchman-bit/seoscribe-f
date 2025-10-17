@@ -9,29 +9,3 @@
 
 [build.environment]
   NODE_VERSION = "18"
-```
-
----
-
-## 📋 **ALTERNATIVE: Delete netlify.toml and use Netlify UI**
-
-If you continue having issues, **delete the `netlify.toml` file** and configure directly in Netlify dashboard:
-
-### **Netlify Dashboard Settings:**
-
-1. **Build Settings:**
-   - Build command: `npm run build`
-   - Publish directory: `dist`
-   - Node version: `18`
-
-2. **Redirects (_redirects file):**
-   Create `public/_redirects`:
-```
-   /*    /index.html   200
-```
-
-3. **Environment Variables:**
-   Add in Netlify Dashboard → Site settings → Environment variables:
-```
-   VITE_API_URL=https://seoscribe.frank-couchman.workers.dev
-   VITE_SITE_URL=https://seoscribe.pro
