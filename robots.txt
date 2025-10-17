@@ -1,0 +1,18 @@
+cat > public/robots.txt << 'EOF'
+User-agent: *
+Allow: /
+
+Sitemap: https://seoscribe.pro/sitemap.xml
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+EOF
