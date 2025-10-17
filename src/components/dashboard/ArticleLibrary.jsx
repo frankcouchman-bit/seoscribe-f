@@ -5,10 +5,10 @@ import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 
 export default function ArticleLibrary() {
-  const { articles, deleteArticle } = useArticles()
+  const { articles, deleteArticle, loading } = useArticles()
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
-  const [sortBy, setSortBy] = useState('date') // 'date', 'words', 'title'
+  const [sortBy, setSortBy] = useState('date')
 
   const filteredArticles = articles
     .filter(article => 
@@ -23,6 +23,19 @@ export default function ArticleLibrary() {
         return a.title.localeCompare(b.title)
       }
     })
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="glass rounded-2xl p-6 animate-pulse">
+            <div className="h-6 bg-white/10 rounded w-3/4 mb-4"></div>
+            <div className="h-4 bg-white/10 rounded w-1/2"></div>
+          </div>
+        ))}
+      </div>
+    )
+  }
 
   if (articles.length === 0) {
     return (
@@ -101,7 +114,11 @@ export default function ArticleLibrary() {
                   View
                 </motion.button>
                 <motion.button
-                  onClick={() => deleteArticle(article.id)}
+                  onClick={() => {
+                    if (window.confirm('Delete this article?')) {
+                      deleteArticle(article.id)
+                    }
+                  }}
                   className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg font-semibold transition-colors flex items-center gap-2"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
