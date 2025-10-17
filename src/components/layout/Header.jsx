@@ -37,7 +37,10 @@ export default function Header() {
               <Link to="/blog" className="text-white/80 hover:text-white transition-colors font-medium">
                 Blog
               </Link>
-              <a href="/#pricing" className="text-white/80 hover:text-white transition-colors font-medium">
+              <a
+                href="/#pricing"
+                className="text-white/80 hover:text-white transition-colors font-medium"
+              >
                 Pricing
               </a>
             </nav>
@@ -48,12 +51,14 @@ export default function Header() {
                   <button
                     onClick={() => navigate('/dashboard')}
                     className="px-4 py-2 text-white/80 hover:text-white transition-colors font-semibold"
+                    type="button"
                   >
                     Dashboard
                   </button>
                   <button
                     onClick={handleSignOut}
                     className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                    type="button"
                   >
                     <LogOut className="w-4 h-4" />
                     Sign Out
@@ -64,12 +69,14 @@ export default function Header() {
                   <button
                     onClick={() => setShowAuthModal(true)}
                     className="px-4 py-2 text-white/80 hover:text-white transition-colors font-semibold"
+                    type="button"
                   >
                     Sign In
                   </button>
                   <button
                     onClick={() => setShowAuthModal(true)}
                     className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-semibold shadow-lg"
+                    type="button"
                   >
                     Start Free
                   </button>
@@ -80,6 +87,8 @@ export default function Header() {
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="md:hidden text-white"
+              aria-label="Toggle menu"
+              type="button"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -116,7 +125,7 @@ export default function Header() {
                 >
                   Blog
                 </Link>
-                
+                <a
                   href="/#pricing"
                   className="block py-2 text-white/80 hover:text-white transition-colors font-medium"
                   onClick={() => setMobileMenuOpen(false)}
@@ -132,12 +141,14 @@ export default function Header() {
                         setMobileMenuOpen(false)
                       }}
                       className="w-full text-left py-2 text-white/80 hover:text-white transition-colors font-medium"
+                      type="button"
                     >
                       Dashboard
                     </button>
                     <button
                       onClick={handleSignOut}
                       className="w-full flex items-center gap-2 py-2 px-4 bg-white/10 hover:bg-white/20 rounded-lg font-semibold transition-colors"
+                      type="button"
                     >
                       <LogOut className="w-4 h-4" />
                       Sign Out
@@ -151,6 +162,7 @@ export default function Header() {
                         setMobileMenuOpen(false)
                       }}
                       className="w-full text-left py-2 text-white/80 hover:text-white transition-colors font-medium"
+                      type="button"
                     >
                       Sign In
                     </button>
@@ -160,6 +172,7 @@ export default function Header() {
                         setMobileMenuOpen(false)
                       }}
                       className="w-full py-2 px-6 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-semibold shadow-lg"
+                      type="button"
                     >
                       Start Free
                     </button>
