@@ -38,13 +38,13 @@ class APIClient {
       method: 'POST',
       body: JSON.stringify({ 
         email,
-        redirect: window.location.origin
+        redirect: window.location.origin + '/dashboard'
       })
     })
   }
 
   handleGoogleAuth() {
-    window.location.href = `${this.baseURL}/auth/google?redirect=${encodeURIComponent(window.location.origin)}`
+    window.location.href = `${this.baseURL}/auth/google?redirect=${encodeURIComponent(window.location.origin + '/dashboard')}`
   }
 
   async getProfile() {
@@ -55,6 +55,13 @@ class APIClient {
     return this.request('/api/profile', {
       method: 'PATCH',
       body: JSON.stringify(data)
+    })
+  }
+
+  // ============ DEMO USAGE ============
+  async checkDemoUsage() {
+    return this.request('/api/demo-usage', {
+      method: 'GET'
     })
   }
 
