@@ -1,99 +1,177 @@
-import { motion } from 'framer-motion'
-import { Sparkles, Menu, X } from 'lucide-react'
-import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { Sparkles, Menu, X, LogOut } from 'lucide-react'
+import { useState } from 'react'
 import { useAuth } from '../../hooks/useAuth'
+import AuthModal from '../auth/AuthModal'
+import { motion, AnimatePresence } from 'framer-motion'
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const { user, plan, clearAuth } = useAuth()
+  const [showAuthModal, setShowAuthModal] = useState(false)
+  const { user, signOut } = useAuth()
   const navigate = useNavigate()
 
   const handleSignOut = () => {
-    clearAuth()
-    navigate('/')
+    signOut()
   }
 
   return (
-    <motion.header
-      className="sticky top-0 z-50 backdrop-blur-xl bg-white/5 border-b border-white/10"
-      initial={{ y: -100 }}
-      animate={{ y: 0 }}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
-              <Sparkles className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <div className="text-xl font-black text-white">SEOScribe</div>
-              <div className="text-xs font-bold text-purple-400">AI Writing Tool</div>
-            </div>
-          </Link>
-
-          <nav className="hidden md:flex items-center gap-8">
-            <Link to="/ai-writer" className="text-white/80 hover:text-white font-semibold transition-colors">
-              AI Writer
+    <>
+      <header className="fixed top-0 left-0 right-0 z-50 glass border-b border-white/10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <Link to="/" className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                <Sparkles className="w-4 h-4 text-white" />
+              </div>
+              <span className="font-black text-xl text-white">SEOScribe</span>
             </Link>
-            <Link to="/tools" className="text-white/80 hover:text-white font-semibold transition-colors">
-              Tools
-            </Link>
-            <a href="#pricing" className="text-white/80 hover:text-white font-semibold transition-colors">
-              Pricing
-            </a>
-          </nav>
 
-          <div className="hidden md:flex items-center gap-4">
-            {user ? (
-              <>
-                <Link to="/dashboard" className="text-white/80 hover:text-white font-semibold">
-                  Dashboard
-                </Link>
-                <div className="text-sm">
-                  <span className="text-white/70">{user.email}</span>
-                  <span className="ml-2 px-2 py-1 bg-purple-500/20 text-purple-400 rounded-full text-xs font-bold uppercase">
-                    {plan}
-                  </span>
-                </div>
-                <button onClick={handleSignOut} className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg font-semibold text-white">
-                  Sign Out
-                </button>
-              </>
-            ) : (
-              <motion.button
-                onClick={() => navigate('/?auth=signup')}
-                className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-bold shadow-lg text-white"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                Start Free
-              </motion.button>
-            )}
-          </div>
+            <nav className="hidden md:flex items-center gap-6">
+              <Link to="/tools" className="text-white/80 hover:text-white transition-colors font-medium">
+                Tools
+              </Link>
+              <Link to="/ai-writer" className="text-white/80 hover:text-white transition-colors font-medium">
+                AI Writer
+              </Link>
+              <Link to="/blog" className="text-white/80 hover:text-white transition-colors font-medium">
+                Blog
+              </Link>
+              <a href="/#pricing" className="text-white/80 hover:text-white transition-colors font-medium">
+                Pricing
+              </a>
+            </nav>
 
-          <button className="md:hidden p-2 text-white" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
-        </div>
-
-        {mobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-white/10">
-            <div className="flex flex-col gap-4">
-              <Link to="/ai-writer" className="text-white font-semibold">AI Writer</Link>
-              <Link to="/tools" className="text-white font-semibold">Tools</Link>
+            <div className="hidden md:flex items-center gap-3">
               {user ? (
                 <>
-                  <Link to="/dashboard" className="text-white font-semibold">Dashboard</Link>
-                  <button onClick={handleSignOut} className="text-left text-white font-semibold">Sign Out</button>
+                  <button
+                    onClick={() => navigate('/dashboard')}
+                    className="px-4 py-2 text-white/80 hover:text-white transition-colors font-semibold"
+                  >
+                    Dashboard
+                  </button>
+                  <button
+                    onClick={handleSignOut}
+                    className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sign Out
+                  </button>
                 </>
               ) : (
-                <Link to="/?auth=signup" className="text-white font-semibold">Start Free</Link>
+                <>
+                  <button
+                    onClick={() => setShowAuthModal(true)}
+                    className="px-4 py-2 text-white/80 hover:text-white transition-colors font-semibold"
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    onClick={() => setShowAuthModal(true)}
+                    className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-semibold shadow-lg"
+                  >
+                    Start Free
+                  </button>
+                </>
               )}
             </div>
+
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden text-white"
+            >
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
           </div>
-        )}
-      </div>
-    </motion.header>
+        </div>
+
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="md:hidden border-t border-white/10 glass-strong"
+            >
+              <div className="px-4 py-4 space-y-3">
+                <Link
+                  to="/tools"
+                  className="block py-2 text-white/80 hover:text-white transition-colors font-medium"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Tools
+                </Link>
+                <Link
+                  to="/ai-writer"
+                  className="block py-2 text-white/80 hover:text-white transition-colors font-medium"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  AI Writer
+                </Link>
+                <Link
+                  to="/blog"
+                  className="block py-2 text-white/80 hover:text-white transition-colors font-medium"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Blog
+                </Link>
+                
+                  href="/#pricing"
+                  className="block py-2 text-white/80 hover:text-white transition-colors font-medium"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Pricing
+                </a>
+
+                {user ? (
+                  <>
+                    <button
+                      onClick={() => {
+                        navigate('/dashboard')
+                        setMobileMenuOpen(false)
+                      }}
+                      className="w-full text-left py-2 text-white/80 hover:text-white transition-colors font-medium"
+                    >
+                      Dashboard
+                    </button>
+                    <button
+                      onClick={handleSignOut}
+                      className="w-full flex items-center gap-2 py-2 px-4 bg-white/10 hover:bg-white/20 rounded-lg font-semibold transition-colors"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Sign Out
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => {
+                        setShowAuthModal(true)
+                        setMobileMenuOpen(false)
+                      }}
+                      className="w-full text-left py-2 text-white/80 hover:text-white transition-colors font-medium"
+                    >
+                      Sign In
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowAuthModal(true)
+                        setMobileMenuOpen(false)
+                      }}
+                      className="w-full py-2 px-6 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-semibold shadow-lg"
+                    >
+                      Start Free
+                    </button>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </header>
+
+      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
+    </>
   )
 }
