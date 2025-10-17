@@ -4,22 +4,46 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
+  <!-- Primary Meta Tags -->
   <title>AI Writer & Article Writer Tool | Free Writing Software - SEOScribe</title>
+  <meta name="title" content="AI Writer & Article Writer Tool | Free Writing Software - SEOScribe" />
   <meta name="description" content="Best AI writer and article writer for SEO. Free writing tool generates proven, optimized articles with citations and images. Try the #1 AI writing tool today." />
   <meta name="keywords" content="ai writer, article writer, writing tool, ai writing tool, free ai writer, best ai writer, article writing software, seo writing tool" />
   <link rel="canonical" href="https://seoscribe.pro/" />
   
-  <meta property="og:title" content="AI Writer & Article Writer Tool | SEOScribe" />
-  <meta property="og:description" content="Best AI writer for SEO content. Free writing tool generates optimized articles." />
-  <meta property="og:url" content="https://seoscribe.pro/" />
+  <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://seoscribe.pro/" />
+  <meta property="og:title" content="AI Writer & Article Writer Tool | SEOScribe" />
+  <meta property="og:description" content="Best AI writer for SEO content. Free writing tool generates optimized articles with citations and images." />
+  <meta property="og:image" content="https://seoscribe.pro/og-image.png" />
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="twitter:url" content="https://seoscribe.pro/" />
+  <meta property="twitter:title" content="AI Writer & Article Writer Tool | SEOScribe" />
+  <meta property="twitter:description" content="Best AI writer for SEO content. Free writing tool generates optimized articles." />
+  <meta property="twitter:image" content="https://seoscribe.pro/og-image.png" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   
+  <!-- Google Analytics - Replace G-XXXXXXXXXX with your actual GA4 ID -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-XXXXXXXXXX');
+  </script>
+  
+  <!-- Structured Data -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     "name": "SEOScribe AI Writer",
-    "applicationCategory": "WritingTool",
+    "applicationCategory": "WritingApplication",
     "offers": {
       "@type": "Offer",
       "price": "0",
@@ -29,7 +53,8 @@
       "@type": "AggregateRating",
       "ratingValue": "4.9",
       "ratingCount": "12847"
-    }
+    },
+    "description": "Best AI writer and article writer for SEO. Free writing tool generates proven, optimized articles with citations and images."
   }
   </script>
 </head>
@@ -38,31 +63,3 @@
   <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>
-```
-
----
-
-# 📂 PUBLIC FOLDER
-
-## `public/_redirects`
-```
-/*    /index.html   200
-```
-
-## `public/robots.txt`
-```
-User-agent: *
-Allow: /
-Sitemap: https://seoscribe.pro/sitemap.xml
-
-User-agent: GPTBot
-Allow: /
-
-User-agent: ChatGPT-User
-Allow: /
-
-User-agent: Claude-Web
-Allow: /
-
-User-agent: anthropic-ai
-Allow: /
