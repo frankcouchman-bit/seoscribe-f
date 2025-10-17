@@ -14,7 +14,7 @@ export const useArticles = create((set, get) => ({
       const articles = await api.getArticles()
       set({ articles, loading: false })
     } catch (error) {
-      toast.error('Failed to load articles')
+      console.error('Failed to load articles:', error)
       set({ loading: false })
     }
   },
@@ -26,14 +26,29 @@ export const useArticles = create((set, get) => ({
         topic,
         website_url: websiteUrl,
         tone: 'professional',
-        generate_social: true
+        generate_social: true,
+        research: true
       })
+      
       set({ currentArticle: article, generating: false })
       toast.success('✨ Article generated successfully!')
+      
+      // Refresh articles list
+      get().fetchArticles()
+      
       return article
     } catch (error) {
-      toast.error(error.message || 'Generation failed')
       set({ generating: false })
+      
+      // Check for quota errors
+      if (error.message.includes('Quota exceeded') || error.message.includes('limit reached')) {
+        toast.error('Daily limit reached! Upgrade to Pro for 15 articles/day.')
+      } else if (error.message.includes('Sign in') || error.message.includes('Unauthorized')) {
+        toast.error('Please sign in to generate articles')
+      } else {
+        toast.error(error.message || 'Generation failed')
+      }
+      
       throw error
     }
   },
@@ -62,6 +77,17 @@ export const useArticles = create((set, get) => ({
       toast.success('🗑️ Deleted')
     } catch (error) {
       toast.error('Failed to delete')
+    }
+  },
+
+  loadArticle: async (id) => {
+    try {
+      const article = await api.getArticle(id)
+      set({ currentArticle: article })
+      return article
+    } catch (error) {
+      toast.error('Failed to load article')
+      throw error
     }
   }
 }))
