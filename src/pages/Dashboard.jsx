@@ -1,9 +1,11 @@
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
-import { Sparkles, TrendingUp, Zap } from 'lucide-react'
+import { Sparkles, TrendingUp, Zap, Crown } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useArticles } from '../hooks/useArticles'
 import { useNavigate } from 'react-router-dom'
+import { api } from '../lib/api'
+import { toast } from 'react-hot-toast'
 import ArticleGenerator from '../components/dashboard/ArticleGenerator'
 import ArticleLibrary from '../components/dashboard/ArticleLibrary'
 
@@ -12,6 +14,7 @@ export default function Dashboard() {
   const { fetchArticles } = useArticles()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('generate')
+  const [upgrading, setUpgrading] = useState(false)
 
   useEffect(() => {
     if (!user) {
@@ -20,6 +23,26 @@ export default function Dashboard() {
     }
     fetchArticles()
   }, [user, navigate, fetchArticles])
+
+  const handleUpgrade = async () => {
+    setUpgrading(true)
+    try {
+      const { url } = await api.createCheckoutSession()
+      window.location.href = url
+    } catch (error) {
+      toast.error('Failed to start checkout')
+      setUpgrading(false)
+    }
+  }
+
+  const handleManageBilling = async () => {
+    try {
+      const { url } = await api.createPortalSession()
+      window.location.href = url
+    } catch (error) {
+      toast.error('Failed to open billing portal')
+    }
+  }
 
   if (!user) return null
 
@@ -42,20 +65,54 @@ export default function Dashboard() {
 
         {plan === 'free' && (
           <motion.div
-            className="mb-6 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-xl p-4 flex items-center justify-between"
+            className="mb-6 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-xl p-6 flex items-center justify-between"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <div className="flex items-center gap-3">
-              <Sparkles className="w-6 h-6 text-purple-400" />
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+                <Crown className="w-6 h-6 text-white" />
+              </div>
               <div>
-                <div className="font-bold">Upgrade to Pro</div>
-                <div className="text-sm text-white/70">Get 15 articles/day + unlimited exports</div>
+                <div className="font-bold text-lg">Upgrade to Pro</div>
+                <div className="text-sm text-white/70">Get 15 articles/day + unlimited exports for $29/month</div>
               </div>
             </div>
-            <button className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-bold">
-              Upgrade
-            </button>
+            <motion.button
+              onClick={handleUpgrade}
+              disabled={upgrading}
+              className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-bold shadow-lg disabled:opacity-50"
+              whileHover={{ scale: upgrading ? 1 : 1.05 }}
+              whileTap={{ scale: upgrading ? 1 : 0.95 }}
+            >
+              {upgrading ? 'Loading...' : 'Upgrade Now'}
+            </motion.button>
+          </motion.div>
+        )}
+
+        {plan === 'pro' && (
+          <motion.div
+            className="mb-6 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-xl p-6 flex items-center justify-between"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center">
+                <Crown className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <div className="font-bold text-lg">Pro Plan Active</div>
+                <div className="text-sm text-white/70">Enjoying unlimited access to all features</div>
+              </div>
+            </div>
+            <motion.button
+              onClick={handleManageBilling}
+              className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-lg font-bold"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              Manage Billing
+            </motion.button>
           </motion.div>
         )}
 
