@@ -160,7 +160,7 @@ export default function Article() {
             <span>📊 {article.word_count || 0} words</span>
             <span>⏱️ {article.reading_time_minutes || 0} min read</span>
             <span>🔗 {article.citations?.length || 0} sources</span>
-            {article.internal_links?.length > 0 && (
+            {article.internal_links && article.internal_links.length > 0 && (
               <span>🔗 {article.internal_links.length} internal links</span>
             )}
           </div>
@@ -180,20 +180,24 @@ export default function Article() {
             <div className="mt-12 pt-8 border-t border-white/10">
               <h2 className="text-2xl font-bold mb-6">🔗 Internal Links</h2>
               <div className="grid gap-3">
-                {article.internal_links.map((link, idx) => (
-                  
-                    key={idx}
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener"
-                    className="glass rounded-lg p-4 hover:bg-white/10 transition-colors block"
-                  >
-                    <div className="font-semibold text-blue-400 mb-1">
-                      {link.suggested_anchor || link.title}
-                    </div>
-                    <div className="text-xs text-white/50 truncate">{link.url}</div>
-                  </a>
-                ))}
+                {article.internal_links.map((link, idx) => {
+                  const linkUrl = link.url || '#'
+                  const linkTitle = link.suggested_anchor || link.title || 'Link'
+                  return (
+                    
+                      key={idx}
+                      href={linkUrl}
+                      target="_blank"
+                      rel="noopener"
+                      className="glass rounded-lg p-4 hover:bg-white/10 transition-colors block"
+                    >
+                      <div className="font-semibold text-blue-400 mb-1">
+                        {linkTitle}
+                      </div>
+                      <div className="text-xs text-white/50 truncate">{linkUrl}</div>
+                    </a>
+                  )
+                })}
               </div>
             </div>
           )}
@@ -278,6 +282,13 @@ function generateMarkdown(article) {
       md += `${para}\n\n`
     })
   })
+
+  if (article.internal_links?.length > 0) {
+    md += `\n## Internal Links\n\n`
+    article.internal_links.forEach((link) => {
+      md += `- [${link.suggested_anchor || link.title}](${link.url})\n`
+    })
+  }
 
   if (article.faqs?.length > 0) {
     md += `\n## FAQs\n\n`
