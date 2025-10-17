@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
-import { Sparkles, Zap, Check, Star, FileText, TrendingUp, Globe, Search, BarChart, ChevronDown, Lock } from 'lucide-react'
+import { Sparkles, Zap, Check, Star, FileText, TrendingUp, Globe, Search, BarChart, ChevronDown, Lock, ArrowRight, Users, Clock, Target } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useArticles } from '../hooks/useArticles'
 import { useAuth } from '../hooks/useAuth'
@@ -12,13 +12,22 @@ export default function Home() {
   const [websiteUrl, setWebsiteUrl] = useState('')
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [openFaq, setOpenFaq] = useState(null)
+  const [showCTA, setShowCTA] = useState(false)
   const { generateArticle, generating } = useArticles()
-  const { user, usage, canGenerate, checkAuth } = useAuth()
+  const { user, usage, canGenerate, checkAuth, refreshUsage } = useAuth()
   const navigate = useNavigate()
 
   useEffect(() => {
     checkAuth()
-  }, [checkAuth])
+    
+    const timer = setTimeout(() => {
+      if (!user) {
+        setShowCTA(true)
+      }
+    }, 30000)
+    
+    return () => clearTimeout(timer)
+  }, [checkAuth, user])
 
   const canCreate = canGenerate()
   const isDemoUser = !user
@@ -33,15 +42,17 @@ export default function Home() {
         toast.error('Demo limit reached! Sign up for 1 article/day free.', { duration: 5000 })
         setShowAuthModal(true)
       } else {
-        toast.error('Daily limit reached! Upgrade to Pro for 15 articles/day.', { duration: 5000 })
+        toast.error('Daily limit reached! Upgrade to Pro for 15 articles/day.', { duration: 5000 }}
       }
       return
     }
 
     try {
       await generateArticle(topic, websiteUrl)
+      await refreshUsage()
       navigate('/article/new')
     } catch (error) {
+      await refreshUsage()
       if (error.message.includes('Demo limit') || error.message.includes('month')) {
         setShowAuthModal(true)
       } else if (error.message.includes('Sign in') || error.message.includes('Unauthorized')) {
@@ -81,11 +92,54 @@ export default function Home() {
     }
   ]
 
+  const features = [
+    { icon: Users, stat: "12,000+", label: "Active Users" },
+    { icon: FileText, stat: "50,000+", label: "Articles Created" },
+    { icon: Clock, stat: "90 sec", label: "Average Generation Time" },
+    { icon: Target, stat: "4.9/5", label: "User Rating" }
+  ]
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Floating CTA */}
+      {showCTA && !user && (
+        <motion.div
+          initial={{ opacity: 0, y: 100 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="fixed bottom-8 right-8 z-50 glass-strong rounded-2xl p-6 shadow-2xl max-w-sm border border-purple-500/30"
+        >
+          <button
+            onClick={() => setShowCTA(false)}
+            className="absolute top-2 right-2 text-white/60 hover:text-white"
+          >
+            ×
+          </button>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+              <Sparkles className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="font-bold">Still Here?</div>
+              <div className="text-sm text-white/70">Try generating an article!</div>
+            </div>
+          </div>
+          <motion.button
+            onClick={() => {
+              setShowCTA(false)
+              setShowAuthModal(true)
+            }}
+            className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-bold"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            Get Started Free
+          </motion.button>
+        </motion.div>
+      )}
+
       {/* Hero Section */}
       <section className="relative pt-20 pb-32 overflow-hidden">
-        {/* Animated Background */}
+        {/* Enhanced Animated Background */}
         <div className="absolute inset-0 pointer-events-none">
           <motion.div
             className="absolute top-20 left-10 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl"
@@ -115,6 +169,27 @@ export default function Home() {
             }}
             transition={{ duration: 10, repeat: Infinity, delay: 2 }}
           />
+          
+          {/* Floating particles */}
+          {[...Array(20)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-2 h-2 bg-white/20 rounded-full"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+              }}
+              animate={{
+                y: [0, -30, 0],
+                opacity: [0, 1, 0],
+              }}
+              transition={{
+                duration: 3 + Math.random() * 2,
+                repeat: Infinity,
+                delay: Math.random() * 2,
+              }}
+            />
+          ))}
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -135,7 +210,15 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
             >
-              The Best <span className="gradient-text">AI Writer</span>
+              The Best <motion.span 
+                className="gradient-text"
+                animate={{ 
+                  backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+                }}
+                transition={{ duration: 5, repeat: Infinity }}
+              >
+                AI Writer
+              </motion.span>
               <br />for SEO Content
             </motion.h1>
 
@@ -150,46 +233,81 @@ export default function Home() {
               outranks competitors.
             </motion.p>
 
+            {/* Stats Bar */}
+            <motion.div
+              className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto mb-12"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 }}
+            >
+              {features.map((feature, i) => (
+                <motion.div
+                  key={feature.label}
+                  className="glass rounded-xl p-4"
+                  whileHover={{ scale: 1.05, y: -5 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
+                  <feature.icon className="w-8 h-8 text-purple-400 mx-auto mb-2" />
+                  <div className="text-2xl font-black gradient-text">{feature.stat}</div>
+                  <div className="text-xs text-white/60">{feature.label}</div>
+                </motion.div>
+              ))}
+            </motion.div>
+
             <motion.form
               onSubmit={handleGenerate}
               className="max-w-2xl mx-auto glass-strong rounded-2xl p-8 shadow-2xl"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
+              whileHover={{ boxShadow: "0 20px 60px rgba(168, 85, 247, 0.4)" }}
             >
               {!canCreate && isDemoUser && (
-                <div className="mb-4 bg-orange-500/20 border border-orange-500/30 rounded-lg p-3 text-sm">
+                <motion.div 
+                  className="mb-4 bg-orange-500/20 border border-orange-500/30 rounded-lg p-3 text-sm"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                >
                   <div className="flex items-center gap-2">
                     <Lock className="w-4 h-4 text-orange-400" />
                     <span className="text-orange-400 font-bold">Demo Used This Month</span>
                   </div>
                   <p className="text-white/70 mt-1">Sign up for 1 free article per day!</p>
-                </div>
+                </motion.div>
               )}
 
-              <input
+              <motion.input
                 type="text"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
                 placeholder="Enter your topic (e.g., Best Project Management Tools 2025)"
                 className="w-full px-4 py-4 mb-4 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/50 transition-all disabled:opacity-50"
                 disabled={generating || (!canCreate && isDemoUser)}
+                whileFocus={{ scale: 1.02 }}
               />
-              <input
+              <motion.input
                 type="text"
                 value={websiteUrl}
                 onChange={(e) => setWebsiteUrl(e.target.value)}
                 placeholder="Your website URL (optional, for internal links)"
                 className="w-full px-4 py-4 mb-4 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/50 transition-all disabled:opacity-50"
                 disabled={generating || (!canCreate && isDemoUser)}
+                whileFocus={{ scale: 1.02 }}
               />
               <motion.button
                 type="submit"
-                className="w-full py-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-bold text-lg shadow-lg shadow-purple-500/50 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-bold text-lg shadow-lg shadow-purple-500/50 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden"
                 whileHover={{ scale: (generating || (!canCreate && isDemoUser)) ? 1 : 1.02 }}
                 whileTap={{ scale: (generating || (!canCreate && isDemoUser)) ? 1 : 0.98 }}
                 disabled={generating || !topic.trim() || (!canCreate && isDemoUser)}
               >
+                {generating && (
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                    animate={{ x: ['-100%', '200%'] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  />
+                )}
                 {generating ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -204,18 +322,44 @@ export default function Home() {
                   <>
                     <Zap className="w-5 h-5" />
                     <span>Generate Article Now - Free</span>
+                    <ArrowRight className="w-5 h-5" />
                   </>
                 )}
               </motion.button>
-              <p className="text-white/60 text-sm mt-4">
+              <motion.p 
+                className="text-white/60 text-sm mt-4"
+                animate={{ opacity: [0.6, 1, 0.6] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
                 {isDemoUser 
                   ? demoUsed 
                     ? "Demo used. Sign up for 1 free article/day!"
                     : "Try free: 1 demo article/month • Sign up: 1 article/day"
                   : "Free forever: 1 article/day • Pro: 15/day + unlimited exports"
                 }
-              </p>
+              </motion.p>
             </motion.form>
+
+            {/* Trust badges */}
+            <motion.div
+              className="mt-8 flex items-center justify-center gap-6 text-sm text-white/60"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+            >
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-green-400" />
+                <span>No credit card</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-green-400" />
+                <span>Cancel anytime</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-green-400" />
+                <span>Free forever</span>
+              </div>
+            </motion.div>
           </div>
         </div>
       </section>
@@ -258,15 +402,23 @@ export default function Home() {
             ].map((feature, i) => (
               <motion.div
                 key={feature.title}
-                className="glass rounded-2xl p-8 hover:scale-105 transition-transform"
+                className="glass rounded-2xl p-8"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
+                whileHover={{ 
+                  scale: 1.05,
+                  boxShadow: "0 20px 40px rgba(0,0,0,0.3)"
+                }}
               >
-                <div className={`w-16 h-16 bg-gradient-to-br ${feature.color} rounded-xl flex items-center justify-center mb-4`}>
+                <motion.div 
+                  className={`w-16 h-16 bg-gradient-to-br ${feature.color} rounded-xl flex items-center justify-center mb-4`}
+                  whileHover={{ rotate: 360 }}
+                  transition={{ duration: 0.6 }}
+                >
                   <feature.icon className="w-8 h-8" />
-                </div>
+                </motion.div>
                 <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
                 <p className="text-white/70">{feature.description}</p>
               </motion.div>
@@ -310,11 +462,12 @@ export default function Home() {
             ].map((feature, i) => (
               <motion.div
                 key={feature.title}
-                className="glass rounded-2xl p-8 hover:scale-105 transition-transform"
+                className="glass rounded-2xl p-8"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
+                whileHover={{ scale: 1.05 }}
               >
                 <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center mb-4">
                   <feature.icon className="w-8 h-8" />
@@ -349,6 +502,7 @@ export default function Home() {
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
+              whileHover={{ y: -10 }}
             >
               <h3 className="text-2xl font-bold mb-2">Free</h3>
               <div className="text-4xl font-black mb-6">
@@ -396,10 +550,15 @@ export default function Home() {
               initial={{ opacity: 0, x: 20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
+              whileHover={{ y: -10, boxShadow: "0 30px 60px rgba(168, 85, 247, 0.4)" }}
             >
-              <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full text-sm font-bold">
+              <motion.div 
+                className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full text-sm font-bold"
+                animate={{ scale: [1, 1.05, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
                 MOST POPULAR
-              </div>
+              </motion.div>
               <h3 className="text-2xl font-bold mb-2">Pro</h3>
               <div className="text-4xl font-black mb-6">
                 $24<span className="text-lg font-normal text-white/60">/month</span>
@@ -432,10 +591,15 @@ export default function Home() {
               </ul>
               <motion.button
                 onClick={() => user ? navigate('/dashboard') : setShowAuthModal(true)}
-                className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-bold shadow-lg"
+                className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-bold shadow-lg relative overflow-hidden"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                  animate={{ x: ['-100%', '200%'] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                />
                 {user ? 'Upgrade to Pro' : 'Get Started Free'}
               </motion.button>
             </motion.div>
@@ -473,9 +637,12 @@ export default function Home() {
                   className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-white/5 transition-colors"
                 >
                   <span className="font-bold text-lg">{faq.q}</span>
-                  <ChevronDown 
-                    className={`w-5 h-5 transition-transform ${openFaq === i ? 'rotate-180' : ''}`}
-                  />
+                  <motion.div
+                    animate={{ rotate: openFaq === i ? 180 : 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <ChevronDown className="w-5 h-5" />
+                  </motion.div>
                 </button>
                 {openFaq === i && (
                   <motion.div
@@ -490,6 +657,32 @@ export default function Home() {
               </motion.div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="py-20 bg-gradient-to-b from-transparent to-purple-500/10">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="text-4xl font-black mb-4">Ready to Create Amazing Content?</h2>
+            <p className="text-xl text-white/70 mb-8">
+              Join 12,000+ users creating SEO-optimized articles with AI
+            </p>
+            <motion.button
+              onClick={() => user ? navigate('/dashboard') : setShowAuthModal(true)}
+              className="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-bold text-lg shadow-lg inline-flex items-center gap-2"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Sparkles className="w-5 h-5" />
+              Start Creating Free
+              <ArrowRight className="w-5 h-5" />
+            </motion.button>
+          </motion.div>
         </div>
       </section>
 
