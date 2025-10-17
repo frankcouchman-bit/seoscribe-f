@@ -39,21 +39,23 @@ export default function Footer() {
           <div>
             <h3 className="font-bold text-white mb-4">Company</h3>
             <div className="space-y-2">
-              <a href="#pricing" className="block text-white/70 hover:text-white transition-colors text-sm">
+              <a href="/#pricing" className="block text-white/70 hover:text-white transition-colors text-sm">
                 Pricing
               </a>
-              <a href="#" className="block text-white/70 hover:text-white transition-colors text-sm">
+              <Link to="/privacy" className="block text-white/70 hover:text-white transition-colors text-sm">
                 Privacy Policy
-              </a>
-              <a href="#" className="block text-white/70 hover:text-white transition-colors text-sm">
+              </Link>
+              <Link to="/terms" className="block text-white/70 hover:text-white transition-colors text-sm">
                 Terms of Service
-              </a>
+              </Link>
             </div>
           </div>
 
           <div>
             <h3 className="font-bold text-white mb-4">Contact</h3>
-            <p className="text-white/70 text-sm">support@seoscribe.pro</p>
+            <a href="mailto:support@seoscribe.pro" className="text-white/70 hover:text-white transition-colors text-sm">
+              support@seoscribe.pro
+            </a>
           </div>
         </div>
 
