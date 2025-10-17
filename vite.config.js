@@ -3,20 +3,20 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  optimizeDeps: {
-    esbuildOptions: {
-      target: 'esnext'
+  build: {
+    rollupOptions: {
+      external: [],
+    },
+    commonjsOptions: {
+      include: [/node_modules/],
+      transformMixedEsModules: true
     }
   },
-  build: {
-    outDir: 'dist',
-    sourcemap: false,
-    target: 'esnext',
-    minify: 'esbuild',
-    rollupOptions: {
-      output: {
-        manualChunks: undefined
-      }
-    }
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom', 'framer-motion', 'zustand']
+  },
+  server: {
+    port: 5173,
+    host: true
   }
 })
