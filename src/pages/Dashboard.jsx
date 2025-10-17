@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
-import { Sparkles, TrendingUp, Zap, Crown } from 'lucide-react'
+import { Sparkles, TrendingUp, Zap, Crown, AlertCircle } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useArticles } from '../hooks/useArticles'
 import { useNavigate } from 'react-router-dom'
@@ -10,7 +10,7 @@ import ArticleGenerator from '../components/dashboard/ArticleGenerator'
 import ArticleLibrary from '../components/dashboard/ArticleLibrary'
 
 export default function Dashboard() {
-  const { user, plan, usage } = useAuth()
+  const { user, plan, usage, refreshUsage, canGenerate } = useAuth()
   const { fetchArticles } = useArticles()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('generate')
@@ -22,7 +22,8 @@ export default function Dashboard() {
       return
     }
     fetchArticles()
-  }, [user, navigate, fetchArticles])
+    refreshUsage()
+  }, [user, navigate, fetchArticles, refreshUsage])
 
   const handleUpgrade = async () => {
     setUpgrading(true)
@@ -46,9 +47,24 @@ export default function Dashboard() {
 
   if (!user) return null
 
+  const maxGenerations = plan === 'pro' ? 15 : 1
+  const currentGenerations = usage?.today?.generations || 0
+  const canCreate = canGenerate()
+
   const stats = [
-    { label: 'Today', value: usage?.today?.generations || 0, max: plan === 'pro' ? 15 : 1, icon: Zap },
-    { label: 'This Month', value: usage?.month?.generations || 0, icon: TrendingUp },
+    { 
+      label: 'Articles Today', 
+      value: currentGenerations, 
+      max: maxGenerations, 
+      icon: Zap,
+      color: canCreate ? 'from-purple-500 to-pink-500' : 'from-red-500 to-orange-500'
+    },
+    { 
+      label: 'This Month', 
+      value: usage?.month?.generations || 0, 
+      icon: TrendingUp,
+      color: 'from-blue-500 to-cyan-500'
+    },
   ]
 
   return (
@@ -60,10 +76,37 @@ export default function Dashboard() {
           className="mb-8"
         >
           <h1 className="text-4xl font-black mb-2">Dashboard</h1>
-          <p className="text-white/70">Welcome back! Ready to create amazing content?</p>
+          <p className="text-white/70">Welcome back, {user.email?.split('@')[0]}! Ready to create amazing content?</p>
         </motion.div>
 
-        {plan === 'free' && (
+        {!canCreate && plan === 'free' && (
+          <motion.div
+            className="mb-6 bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/30 rounded-xl p-6 flex items-center justify-between"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-red-500/20 rounded-xl flex items-center justify-center">
+                <AlertCircle className="w-6 h-6 text-red-400" />
+              </div>
+              <div>
+                <div className="font-bold text-lg">Daily Limit Reached</div>
+                <div className="text-sm text-white/70">You've used your 1 free article today. Upgrade to Pro for 15 articles/day!</div>
+              </div>
+            </div>
+            <motion.button
+              onClick={handleUpgrade}
+              disabled={upgrading}
+              className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-bold shadow-lg disabled:opacity-50"
+              whileHover={{ scale: upgrading ? 1 : 1.05 }}
+              whileTap={{ scale: upgrading ? 1 : 0.95 }}
+            >
+              {upgrading ? 'Loading...' : 'Upgrade Now'}
+            </motion.button>
+          </motion.div>
+        )}
+
+        {plan === 'free' && canCreate && (
           <motion.div
             className="mb-6 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-xl p-6 flex items-center justify-between"
             initial={{ opacity: 0, y: 20 }}
@@ -101,7 +144,7 @@ export default function Dashboard() {
                 <Crown className="w-6 h-6 text-white" />
               </div>
               <div>
-                <div className="font-bold text-lg">Pro Plan Active</div>
+                <div className="font-bold text-lg">Pro Plan Active ✨</div>
                 <div className="text-sm text-white/70">Enjoying unlimited access to all features</div>
               </div>
             </div>
@@ -126,17 +169,27 @@ export default function Dashboard() {
               transition={{ delay: i * 0.1 }}
             >
               <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+                <div className={`w-12 h-12 bg-gradient-to-br ${stat.color} rounded-xl flex items-center justify-center`}>
                   <stat.icon className="w-6 h-6" />
                 </div>
                 {stat.max && (
-                  <div className="text-xs text-white/60">
+                  <div className="text-sm text-white/60">
                     /{stat.max}
                   </div>
                 )}
               </div>
-              <div className="text-3xl font-black gradient-text">{stat.value}</div>
+              <div className="text-3xl font-black gradient-text">
+                {stat.value}{stat.max ? `/${stat.max}` : ''}
+              </div>
               <div className="text-sm text-white/70 mt-1">{stat.label}</div>
+              {stat.max && (
+                <div className="mt-3 bg-white/10 rounded-full h-2 overflow-hidden">
+                  <div 
+                    className={`h-full bg-gradient-to-r ${stat.color} transition-all duration-500`}
+                    style={{ width: `${(stat.value / stat.max) * 100}%` }}
+                  />
+                </div>
+              )}
             </motion.div>
           ))}
         </div>
@@ -152,7 +205,7 @@ export default function Dashboard() {
                   : 'bg-white/10 text-white/70 hover:text-white'
               }`}
             >
-              {tab === 'generate' ? 'Generate' : 'Library'}
+              {tab === 'generate' ? '✨ Generate' : '📚 Library'}
             </button>
           ))}
         </div>
