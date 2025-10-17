@@ -152,21 +152,23 @@ export default function Article() {
           {article.citations?.length > 0 && (
             <div className="mt-12 pt-8 border-t border-white/10">
               <h2 className="text-2xl font-bold mb-6">Sources</h2>
-              <div className="space-y-3">
-                {article.citations.map((citation, idx) => (
-                  <div key={idx} className="flex gap-2">
-                    <span className="text-purple-400 font-bold flex-shrink-0">[{idx + 1}]</span>
-                    
-                      href={citation.url}
+              {article.citations.map((citation, idx) => {
+                const citationUrl = citation.url || '#'
+                const citationTitle = citation.title || 'Source'
+                return (
+                  <div key={idx} className="mb-3">
+                    <span className="text-purple-400 font-bold">[{idx + 1}] </span>
+                    <a 
+                      href={citationUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-400 hover:underline break-all"
+                      className="text-blue-400 hover:underline"
                     >
-                      {citation.title}
+                      {citationTitle}
                     </a>
                   </div>
-                ))}
-              </div>
+                )
+              })}
             </div>
           )}
         </motion.div>
