@@ -34,11 +34,9 @@ export const useArticles = create((set, get) => ({
         research: true
       })
       
-      // Set as current article immediately
       set({ currentArticle: article, generating: false })
       toast.success('✨ Article generated successfully!')
       
-      // Refresh articles list in background
       setTimeout(() => {
         get().fetchArticles()
       }, 1000)
@@ -47,11 +45,14 @@ export const useArticles = create((set, get) => ({
     } catch (error) {
       set({ generating: false })
       
-      // Check for quota errors
       if (error.message.includes('Quota exceeded') || 
           error.message.includes('limit reached') || 
           error.message.includes('Daily limit')) {
         toast.error('Daily limit reached! Upgrade to Pro for 15 articles/day.', {
+          duration: 5000
+        })
+      } else if (error.message.includes('Demo limit')) {
+        toast.error('Demo limit reached! Sign up for 1 free article/day.', {
           duration: 5000
         })
       } else if (error.message.includes('Sign in') || error.message.includes('Unauthorized')) {
