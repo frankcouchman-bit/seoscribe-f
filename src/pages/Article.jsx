@@ -79,7 +79,6 @@ export default function Article() {
     toast.success('⬇️ Downloaded!')
   }
 
-  // Get hero image URL
   const heroImage = article.image?.image_url || article.image?.url || null
 
   return (
@@ -131,7 +130,6 @@ export default function Article() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          {/* Hero Image */}
           {heroImage ? (
             <img
               src={heroImage}
@@ -139,7 +137,6 @@ export default function Article() {
               className="w-full h-64 object-cover rounded-xl mb-6"
               onError={(e) => {
                 e.target.style.display = 'none'
-                console.error('Failed to load image:', heroImage)
               }}
             />
           ) : (
@@ -168,7 +165,6 @@ export default function Article() {
             )}
           </div>
 
-          {/* Article Sections */}
           {article.sections?.map((section, idx) => (
             <div key={idx} className="mb-8">
               <h2 className="text-2xl font-bold mb-4 text-purple-300">{section.heading}</h2>
@@ -180,7 +176,6 @@ export default function Article() {
             </div>
           ))}
 
-          {/* Internal Links */}
           {article.internal_links && article.internal_links.length > 0 && (
             <div className="mt-12 pt-8 border-t border-white/10">
               <h2 className="text-2xl font-bold mb-6">🔗 Internal Links</h2>
@@ -203,7 +198,6 @@ export default function Article() {
             </div>
           )}
 
-          {/* Social Media Posts */}
           {article.social_media_posts && Object.keys(article.social_media_posts).length > 0 && (
             <div className="mt-12 pt-8 border-t border-white/10">
               <h2 className="text-2xl font-bold mb-6">📱 Social Media Drafts</h2>
@@ -227,7 +221,6 @@ export default function Article() {
             </div>
           )}
 
-          {/* FAQs */}
           {article.faqs?.length > 0 && (
             <div className="mt-12 pt-8 border-t border-white/10">
               <h2 className="text-2xl font-bold mb-6">❓ FAQs</h2>
@@ -242,28 +235,23 @@ export default function Article() {
             </div>
           )}
 
-          {/* Citations */}
           {article.citations?.length > 0 && (
             <div className="mt-12 pt-8 border-t border-white/10">
               <h2 className="text-2xl font-bold mb-6">📚 Sources</h2>
               <div className="space-y-2">
-                {article.citations.map((citation, idx) => {
-                  const citationUrl = citation.url || '#'
-                  const citationTitle = citation.title || 'Source'
-                  return (
-                    <div key={idx} className="text-sm">
-                      <span className="text-purple-400 font-bold">[{idx + 1}] </span>
-                      <a 
-                        href={citationUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-400 hover:underline"
-                      >
-                        {citationTitle}
-                      </a>
-                    </div>
-                  )
-                })}
+                {article.citations.map((citation, idx) => (
+                  <div key={idx} className="text-sm">
+                    <span className="text-purple-400 font-bold">[{idx + 1}] </span>
+                    <a 
+                      href={citation.url || '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:underline"
+                    >
+                      {citation.title || 'Source'}
+                    </a>
+                  </div>
+                ))}
               </div>
             </div>
           )}
