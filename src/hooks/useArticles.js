@@ -36,8 +36,9 @@ export const useArticles = create((set, get) => ({
         research: true
       })
       
-      // CRITICAL: Handle usage returned in response
+      // CRITICAL: Extract usage from response and update auth state
       if (response.usage) {
+        console.log('📊 Updating usage from response:', response.usage)
         useAuth.setState({ usage: response.usage })
       }
       
@@ -46,29 +47,27 @@ export const useArticles = create((set, get) => ({
         generating: false 
       })
       
-      toast.success('✨ Article generated successfully!')
+      toast.success('✨ Article generated!')
       
-      // Fetch articles list after generation
+      // Refresh articles list
       setTimeout(() => {
         get().fetchArticles()
-      }, 1000)
+      }, 500)
       
       return response
     } catch (error) {
       set({ generating: false })
       
-      if (error.message.includes('Quota exceeded') || 
-          error.message.includes('limit reached') || 
-          error.message.includes('Daily limit')) {
-        toast.error('Daily limit reached! Upgrade for more articles.', {
-          duration: 5000
-        })
-      } else if (error.message.includes('Demo limit')) {
-        toast.error('Demo limit reached! Sign up for 1 free article/day.', {
-          duration: 5000
-        })
+      const message = error.message || 'Generation failed'
+      
+      if (message.includes('Quota exceeded') || 
+          message.includes('limit reached') || 
+          message.includes('Daily limit')) {
+        toast.error('❌ Daily limit reached!', { duration: 5000 })
+      } else if (message.includes('Demo limit')) {
+        toast.error('❌ Demo used! Sign up for daily articles.', { duration: 5000 })
       } else {
-        toast.error(error.message || 'Generation failed')
+        toast.error(message)
       }
       
       throw error
@@ -80,13 +79,14 @@ export const useArticles = create((set, get) => ({
       const saved = await api.saveArticle({
         title: article.title,
         data: article,
-        word_count: article.word_count
+        word_count: article.word_count,
+        reading_time_minutes: article.reading_time_minutes
       })
       toast.success('💾 Article saved!')
       get().fetchArticles()
       return saved
     } catch (error) {
-      toast.error('Failed to save')
+      toast.error('Failed to save: ' + error.message)
       throw error
     }
   },
