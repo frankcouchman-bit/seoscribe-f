@@ -17,7 +17,6 @@ export default function Article() {
   const [expanding, setExpanding] = useState(false)
   const [expansionCount, setExpansionCount] = useState(0)
 
-  // Max expansions based on plan
   const maxExpansions = plan === 'pro' || plan === 'enterprise' ? 6 : 2
 
   useEffect(() => {
@@ -26,7 +25,6 @@ export default function Article() {
       loadArticle(id).finally(() => setLoading(false))
     }
     
-    // Track expansion count
     if (currentArticle && currentArticle.expansion_count !== undefined) {
       setExpansionCount(currentArticle.expansion_count)
     }
@@ -39,49 +37,92 @@ export default function Article() {
   const handleExpand = async () => {
     if (!currentArticle) return
     
-    // Check expansion limit
     if (expansionCount >= maxExpansions) {
       if (plan === 'free') {
         toast.error(`Free users can expand up to ${maxExpansions} times. Upgrade to Pro for 6 expansions!`)
       } else {
-        toast.error(`Maximum expansions (${maxExpansions}) reached for this article.`)
+        toast.error(`Maximum expansions (${maxExpansions}) reached.`)
       }
       return
     }
     
     setExpanding(true)
     try {
-      // Store original image before expansion
+      console.log('[EXPAND] Starting expansion...')
+      console.log('[EXPAND] Current sections:', currentArticle.sections?.length || 0)
+      
+      // Store original data
       const originalImage = currentArticle.image || currentArticle.hero_image || currentArticle.featured_image
+      const originalSections = [...(currentArticle.sections || [])]
+      const originalWordCount = currentArticle.word_count || 0
       
-      console.log('[EXPAND] Starting expansion, preserving image:', !!originalImage)
-      
+      // Call backend to expand
       const expanded = await api.expandArticle({
         context: currentArticle,
         article_json: currentArticle,
         keyword: currentArticle.title,
-        expand_only: true // Tell backend to only add content, not regenerate
+        current_word_count: originalWordCount,
+        expand_only: true
       })
       
-      console.log('[EXPAND] Expansion received, checking image:', !!expanded.image)
+      console.log('[EXPAND] Expansion received')
+      console.log('[EXPAND] New sections:', expanded.sections?.length || 0)
       
-      // CRITICAL: Preserve the original image
-      if (originalImage && !expanded.image) {
-        console.log('[EXPAND] Restoring original image')
-        expanded.image = originalImage
-        expanded.hero_image = originalImage
-        expanded.featured_image = originalImage
+      // CRITICAL: MERGE sections instead of replacing
+      let mergedSections = []
+      
+      if (expanded.sections && expanded.sections.length > 0) {
+        // Keep ALL original sections
+        mergedSections = [...originalSections]
+        
+        // Add new sections from expansion
+        const newSections = expanded.sections.filter(newSection => 
+          !originalSections.some(oldSection => 
+            oldSection.heading === newSection.heading
+          )
+        )
+        
+        console.log('[EXPAND] Adding', newSections.length, 'new sections')
+        mergedSections = [...mergedSections, ...newSections]
+      } else {
+        // If backend didn't return sections, keep originals
+        mergedSections = originalSections
       }
       
-      // Update expansion count
-      const newCount = expansionCount + 1
-      expanded.expansion_count = newCount
-      setExpansionCount(newCount)
+      // Calculate new word count
+      const newWordCount = mergedSections.reduce((total, section) => {
+        const sectionWords = section.paragraphs?.reduce((count, para) => 
+          count + para.split(' ').length, 0
+        ) || 0
+        return total + sectionWords
+      }, 0)
       
-      // Update article
-      setCurrentArticle(expanded)
+      console.log('[EXPAND] Word count: ', originalWordCount, '->', newWordCount)
       
-      toast.success(`✨ Article expanded! (${newCount}/${maxExpansions} expansions used)`)
+      // Build merged article
+      const mergedArticle = {
+        ...currentArticle,
+        ...expanded,
+        sections: mergedSections,
+        word_count: newWordCount,
+        reading_time_minutes: Math.ceil(newWordCount / 200),
+        expansion_count: expansionCount + 1
+      }
+      
+      // RESTORE original image
+      if (originalImage) {
+        mergedArticle.image = originalImage
+        mergedArticle.hero_image = originalImage
+        mergedArticle.featured_image = originalImage
+      }
+      
+      console.log('[EXPAND] Final article sections:', mergedArticle.sections.length)
+      console.log('[EXPAND] Final word count:', mergedArticle.word_count)
+      
+      setExpansionCount(expansionCount + 1)
+      setCurrentArticle(mergedArticle)
+      
+      toast.success(`✨ Added ${newSections.length} new sections! Article now ${mergedArticle.word_count} words.`)
     } catch (error) {
       console.error('[EXPAND] Error:', error)
       toast.error(error.message || 'Expansion failed')
@@ -129,19 +170,16 @@ export default function Article() {
           Back to Dashboard
         </motion.button>
 
-        {/* EXPANSION STATUS */}
         {!canExpand && (
           <motion.div
             className="mb-8 p-6 bg-yellow-500/20 border border-yellow-500/30 rounded-xl"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <div className="flex items-center gap-3">
-              <span className="font-semibold">
-                ⚠️ Maximum expansions reached ({expansionCount}/{maxExpansions})
-                {plan === 'free' && ' - Upgrade to Pro for 6 expansions per article!'}
-              </span>
-            </div>
+            <span className="font-semibold">
+              ⚠️ Maximum expansions reached ({expansionCount}/{maxExpansions})
+              {plan === 'free' && ' - Upgrade to Pro for 6 expansions!'}
+            </span>
           </motion.div>
         )}
 
@@ -154,7 +192,7 @@ export default function Article() {
             <div className="flex items-center gap-3">
               <div className="w-6 h-6 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
               <span className="font-semibold">
-                Expanding article with AI... Adding 3-4 new sections with 300-500 words each
+                Expanding article... Adding 3-4 new sections with 300-500 words each
               </span>
             </div>
           </motion.div>
