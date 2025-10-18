@@ -3,7 +3,7 @@ import { Copy, Download, Save, Expand, Sparkles, MessageSquare, CheckCircle, Boo
 import { useState } from 'react'
 import { toast } from 'react-hot-toast'
 
-export default function EnhancedArticleView({ article, onSave, onExpand }) {
+export default function EnhancedArticleView({ article, onSave, onExpand, expansionInfo }) {
   const [saving, setSaving] = useState(false)
   const [imageError, setImageError] = useState(false)
 
@@ -39,37 +39,25 @@ export default function EnhancedArticleView({ article, onSave, onExpand }) {
     return null
   }
 
-  // Helper to get image URL from various possible formats
   const getImageUrl = () => {
-    // Check various possible image locations
     const imageData = article.image || article.hero_image || article.featured_image
     
-    if (!imageData) {
-      console.log('[IMAGE] No image data found in article')
-      return null
-    }
+    if (!imageData) return null
 
-    console.log('[IMAGE] Image data found:', imageData)
-
-    // If it's a string, it's probably a direct URL
     if (typeof imageData === 'string') {
       return imageData
     }
 
-    // If it's an object, check for various properties
     if (typeof imageData === 'object') {
-      // Check for direct URL
       if (imageData.url || imageData.image_url) {
         return imageData.url || imageData.image_url
       }
 
-      // Check for base64 encoded image
       if (imageData.b64 || imageData.image_b64 || imageData.base64) {
         const b64Data = imageData.b64 || imageData.image_b64 || imageData.base64
         return `data:image/png;base64,${b64Data}`
       }
 
-      // Check if the object itself has properties that indicate it's image data
       if (imageData.data) {
         return `data:image/png;base64,${imageData.data}`
       }
@@ -101,15 +89,22 @@ export default function EnhancedArticleView({ article, onSave, onExpand }) {
           </motion.button>
 
           {onExpand && (
-            <motion.button onClick={() => onExpand()} className="px-5 py-2.5 bg-green-500/20 hover:bg-green-500/30 rounded-lg font-semibold flex items-center gap-2 border border-green-500/30" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} type="button">
+            <motion.button 
+              onClick={() => onExpand()} 
+              className="px-5 py-2.5 bg-green-500/20 hover:bg-green-500/30 rounded-lg font-semibold flex items-center gap-2 border border-green-500/30" 
+              whileHover={{ scale: 1.05 }} 
+              whileTap={{ scale: 0.95 }} 
+              type="button"
+              title={expansionInfo ? `${expansionInfo.count}/${expansionInfo.max} expansions used` : 'Expand article'}
+            >
               <Expand className="w-4 h-4" />
-              Expand
+              Expand {expansionInfo && `(${expansionInfo.count}/${expansionInfo.max})`}
             </motion.button>
           )}
         </div>
       </div>
 
-      {/* HERO IMAGE */}
+      {/* HERO IMAGE - ALWAYS SHOW IF EXISTS */}
       {imageUrl && !imageError && (
         <motion.div
           className="mb-8 rounded-2xl overflow-hidden shadow-2xl border-2 border-purple-500/20"
@@ -120,24 +115,15 @@ export default function EnhancedArticleView({ article, onSave, onExpand }) {
             src={imageUrl}
             alt={article.title}
             className="w-full h-auto object-cover"
-            onError={(e) => {
-              console.error('[IMAGE] Failed to load image:', imageUrl)
+            onError={() => {
+              console.error('[IMAGE] Failed to load')
               setImageError(true)
             }}
             onLoad={() => {
-              console.log('[IMAGE] Image loaded successfully')
+              console.log('[IMAGE] Loaded successfully')
             }}
           />
         </motion.div>
-      )}
-
-      {/* DEBUG: Show if image should be there but isn't loading */}
-      {imageUrl && imageError && (
-        <div className="mb-8 p-6 bg-red-500/10 border border-red-500/30 rounded-xl">
-          <p className="text-sm text-red-400">
-            ⚠️ Image failed to load. This might be a temporary issue.
-          </p>
-        </div>
       )}
 
       {/* TITLE */}
@@ -159,6 +145,12 @@ export default function EnhancedArticleView({ article, onSave, onExpand }) {
           <div className="flex items-center gap-2">
             <Star className="w-4 h-4 text-yellow-400" />
             <span>SEO: {article.seo_score.overall}/100</span>
+          </div>
+        )}
+        {expansionInfo && expansionInfo.count > 0 && (
+          <div className="flex items-center gap-2">
+            <Expand className="w-4 h-4 text-green-400" />
+            <span>Expanded {expansionInfo.count}x</span>
           </div>
         )}
       </motion.div>
