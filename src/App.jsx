@@ -2,8 +2,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Toaster } from 'react-hot-toast'
 import { useEffect } from 'react'
 import { useAuth } from './hooks/useAuth'
-
-// Pages
 import Dashboard from './pages/Dashboard'
 import Article from './pages/Article'
 import Library from './pages/Library'
@@ -11,9 +9,7 @@ import SEOTools from './pages/SEOTools'
 import Pricing from './pages/Pricing'
 import AuthCallback from './pages/AuthCallback'
 import Home from './pages/Home'
-
-// Components
-import ProtectedRoute from './components/ProtectedRoute'
+import ProtectedRoute from './components/ProtectedRoute.jsx'
 
 function App() {
   const { checkAuth, loading } = useAuth()
