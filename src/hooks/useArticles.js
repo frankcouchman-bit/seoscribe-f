@@ -12,8 +12,10 @@ export const useArticles = create((set, get) => ({
   generateArticle: async (topic, websiteUrl) => {
     set({ generating: true })
     try {
+      // Send BOTH topic and keyword to ensure backend compatibility
       const article = await api.generateArticle({ 
-        keyword: topic,
+        topic: topic,           // Backend expects 'topic'
+        keyword: topic,          // Also send as 'keyword' for compatibility
         website_url: websiteUrl 
       })
       
