@@ -37,6 +37,7 @@ export const useArticles = create((set, get) => ({
       set({ currentArticle: article, generating: false })
       toast.success('✨ Article generated successfully!')
       
+      // Fetch articles after a short delay
       setTimeout(() => {
         get().fetchArticles()
       }, 1000)
