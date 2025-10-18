@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useEffect } from 'react'
-import { Sparkles, AlertCircle, Lock, UserPlus } from 'lucide-react'
+import { Sparkles, AlertCircle, Lock, UserPlus, Clock } from 'lucide-react'
 import { useArticles } from '../../hooks/useArticles'
 import { useAuth } from '../../hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
@@ -28,21 +28,22 @@ export default function ArticleGenerator() {
   const [showAuthModal, setShowAuthModal] = useState(false)
   
   const { generateArticle, generating } = useArticles()
-  const { canGenerate, plan, incrementGeneration, user, usage } = useAuth()
+  const { canGenerate, plan, incrementGeneration, user, usage, getDemoTimeRemaining } = useAuth()
   const navigate = useNavigate()
 
   const isDemoUser = !user
   const demoUsed = isDemoUser && localStorage.getItem('demo_used') === 'true'
+  const demoTimeRemaining = getDemoTimeRemaining()
   const canCreate = canGenerate()
   const currentGenerations = usage?.today?.generations || 0
   const maxGenerations = plan === 'pro' || plan === 'enterprise' ? 15 : 1
 
-  // Auto-refresh usage display every 5 seconds
+  // Auto-refresh every 2 seconds to show real-time updates
   useEffect(() => {
     const interval = setInterval(() => {
       const { getLocalUsage } = useAuth.getState()
       useAuth.setState({ usage: getLocalUsage() })
-    }, 5000)
+    }, 2000)
     return () => clearInterval(interval)
   }, [])
 
@@ -68,7 +69,6 @@ export default function ArticleGenerator() {
     e.preventDefault()
     if (!topic.trim()) return
     
-    // Check demo user
     if (isDemoUser) {
       if (demoUsed) {
         setShowAuthModal(true)
@@ -76,7 +76,6 @@ export default function ArticleGenerator() {
       }
     }
     
-    // Check quota
     if (!canCreate) {
       if (isDemoUser) {
         setShowAuthModal(true)
@@ -90,42 +89,32 @@ export default function ArticleGenerator() {
       const finalTopic = selectedHeadline || topic
       
       if (selectedTemplate !== 'default') {
-        console.log('[GENERATOR] Using template:', selectedTemplate)
-        
         const response = await api.generateFromTemplate({
           template_id: selectedTemplate,
           topic: finalTopic,
           website_url: websiteUrl
         })
         
-        // Initialize expansion count
         response.expansion_count = 0
-        
         useArticles.setState({ currentArticle: response })
         
-        // Mark demo as used for non-logged users
         if (isDemoUser) {
-          const today = new Date().toISOString().split('T')[0]
+          const today = new Date().toISOString()
           localStorage.setItem('demo_used', 'true')
           localStorage.setItem('demo_date', today)
         } else {
-          // Increment generation count
           incrementGeneration()
         }
         
         navigate('/article/new')
       } else {
-        console.log('[GENERATOR] Using standard generation')
-        
         await generateArticle(finalTopic, websiteUrl)
         
-        // Mark demo as used for non-logged users
         if (isDemoUser) {
-          const today = new Date().toISOString().split('T')[0]
+          const today = new Date().toISOString()
           localStorage.setItem('demo_used', 'true')
           localStorage.setItem('demo_date', today)
         }
-        // Note: incrementGeneration() is already called in generateArticle
         
         navigate('/article/new')
       }
@@ -150,7 +139,7 @@ export default function ArticleGenerator() {
               <h2 className="text-2xl font-bold">Generate Article</h2>
               <p className="text-white/60">
                 {isDemoUser 
-                  ? demoUsed ? 'Demo used - Sign up for daily articles' : '1 free demo article'
+                  ? demoUsed ? `Demo locked - ${demoTimeRemaining} days remaining` : '1 free demo article'
                   : 'Create SEO-optimized content'
                 }
               </p>
@@ -158,7 +147,7 @@ export default function ArticleGenerator() {
           </div>
           
           <div className="text-right">
-            <div className="text-3xl font-black gradient-text">
+            <div className={`text-3xl font-black ${canCreate ? 'gradient-text' : 'text-red-400'}`}>
               {isDemoUser 
                 ? (demoUsed ? '1/1' : '0/1')
                 : `${currentGenerations}/${maxGenerations}`
@@ -171,27 +160,30 @@ export default function ArticleGenerator() {
         </div>
 
         <AnimatePresence>
-          {demoUsed && (
+          {demoUsed && isDemoUser && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="mb-6 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-xl p-6"
+              className="mb-6 bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/30 rounded-xl p-6"
             >
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <UserPlus className="w-6 h-6" />
+                <div className="w-12 h-12 bg-red-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Clock className="w-6 h-6 text-red-400" />
                 </div>
                 <div className="flex-1">
-                  <div className="font-bold text-xl mb-2">🎉 You've Used Your Free Demo!</div>
+                  <div className="font-bold text-xl mb-2 text-red-400">🔒 Demo Period Locked</div>
                   <p className="text-white/70 mb-4">
-                    Love what you see? <strong>Sign up now</strong> and get:
+                    You've used your free demo. Your next demo will be available in <strong>{demoTimeRemaining} days</strong>.
+                  </p>
+                  <p className="text-white/70 mb-4">
+                    <strong>Sign up now</strong> to get:
                   </p>
                   <ul className="text-white/70 mb-4 space-y-1 text-sm">
-                    <li>✅ <strong>1 free article every day</strong></li>
+                    <li>✅ <strong>1 free article every day</strong> (or 15/day with Pro)</li>
                     <li>✅ Save & edit your articles</li>
-                    <li>✅ 1 use per SEO tool/day (10/day for Pro)</li>
-                    <li>✅ Export in multiple formats</li>
+                    <li>✅ SEO tools access (1/day free, 10/day Pro)</li>
+                    <li>✅ Article expansion feature</li>
                   </ul>
                   <motion.button
                     onClick={() => setShowAuthModal(true)}
@@ -199,27 +191,57 @@ export default function ArticleGenerator() {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    Sign Up Free - Get 1 Article Daily →
+                    Sign Up Free - Get Daily Articles →
                   </motion.button>
                 </div>
               </div>
             </motion.div>
           )}
-        </AnimatePresence>
 
-        {!isDemoUser && !canCreate && (
-          <div className="mb-6 bg-red-500/20 border border-red-500/30 rounded-lg p-4 flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-            <div className="text-sm">
-              <div className="font-bold text-red-400 mb-1">Daily Limit Reached</div>
-              <div className="text-white/70">
-                {plan === 'free'
-                  ? "You've used your 1 free article today. Upgrade to Pro for 15 articles/day!"
-                  : "You've reached your daily limit of 15 articles. Limit resets tomorrow."}
+          {!isDemoUser && !canCreate && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mb-6 bg-red-500/20 border border-red-500/30 rounded-xl p-6"
+            >
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-red-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Lock className="w-6 h-6 text-red-400" />
+                </div>
+                <div className="flex-1">
+                  <div className="font-bold text-xl mb-2 text-red-400">Daily Limit Reached</div>
+                  <div className="text-white/70 mb-4">
+                    {plan === 'free'
+                      ? "You've used your 1 free article today. Your limit resets in 24 hours."
+                      : "You've used all 15 articles today. Your limit resets in 24 hours."}
+                  </div>
+                  {plan === 'free' && (
+                    <>
+                      <p className="text-white/70 mb-4">
+                        <strong>Upgrade to Pro</strong> for:
+                      </p>
+                      <ul className="text-white/70 mb-4 space-y-1 text-sm">
+                        <li>✅ 15 articles per day</li>
+                        <li>✅ 10 SEO tool uses per day</li>
+                        <li>✅ 6 article expansions per article</li>
+                        <li>✅ Priority support</li>
+                      </ul>
+                      <motion.button
+                        onClick={() => navigate('/pricing')}
+                        className="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-bold shadow-lg"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        Upgrade to Pro →
+                      </motion.button>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <form onSubmit={handleGenerate} className="space-y-4">
           <div>
@@ -228,7 +250,8 @@ export default function ArticleGenerator() {
               <button
                 type="button"
                 onClick={() => setShowTemplates(!showTemplates)}
-                className="text-sm text-purple-400 hover:text-purple-300"
+                disabled={!canCreate}
+                className="text-sm text-purple-400 hover:text-purple-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {showTemplates ? 'Hide' : 'Show'} templates
               </button>
@@ -247,13 +270,14 @@ export default function ArticleGenerator() {
                       key={template.id}
                       type="button"
                       onClick={() => setSelectedTemplate(template.id)}
-                      className={`p-4 rounded-lg text-left transition-all ${
+                      disabled={!canCreate}
+                      className={`p-4 rounded-lg text-left transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                         selectedTemplate === template.id
                           ? 'bg-purple-500/30 border-2 border-purple-500'
                           : 'bg-white/5 border border-white/10 hover:bg-white/10'
                       }`}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
+                      whileHover={{ scale: canCreate ? 1.02 : 1 }}
+                      whileTap={{ scale: canCreate ? 0.98 : 1 }}
                     >
                       <div className="text-2xl mb-2">{template.icon}</div>
                       <div className="font-semibold text-sm mb-1">{template.name}</div>
@@ -281,13 +305,13 @@ export default function ArticleGenerator() {
                 setShowHeadlines(false)
                 setSelectedHeadline('')
               }}
-              placeholder="e.g., Best Project Management Tools 2025"
-              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/50 transition-all disabled:opacity-50"
-              disabled={generating || demoUsed || (!isDemoUser && !canCreate)}
+              placeholder={canCreate ? "e.g., Best Project Management Tools 2025" : "Daily limit reached - locked for 24 hours"}
+              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!canCreate}
             />
           </div>
 
-          {topic.trim() && !showHeadlines && !generating && !demoUsed && canCreate && (
+          {topic.trim() && !showHeadlines && !generating && canCreate && (
             <motion.button
               type="button"
               onClick={generateHeadlines}
@@ -339,36 +363,28 @@ export default function ArticleGenerator() {
               type="text"
               value={websiteUrl}
               onChange={(e) => setWebsiteUrl(e.target.value)}
-              placeholder="https://yourwebsite.com"
-              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/50 transition-all disabled:opacity-50"
-              disabled={generating || demoUsed || (!isDemoUser && !canCreate)}
+              placeholder={canCreate ? "https://yourwebsite.com" : "Locked"}
+              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!canCreate}
             />
-            <p className="text-xs text-white/50 mt-2">
-              Add your website URL for internal links
-            </p>
           </div>
 
           <motion.button
             type="submit"
-            disabled={generating || !topic.trim() || demoUsed || (!isDemoUser && !canCreate)}
+            disabled={!canCreate || !topic.trim()}
             className="w-full py-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-bold text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            whileHover={{ scale: (generating || demoUsed || (!isDemoUser && !canCreate)) ? 1 : 1.02 }}
-            whileTap={{ scale: (generating || demoUsed || (!isDemoUser && !canCreate)) ? 1 : 0.98 }}
+            whileHover={{ scale: canCreate ? 1.02 : 1 }}
+            whileTap={{ scale: canCreate ? 0.98 : 1 }}
           >
             {generating ? (
               <>
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 <span>Generating Article...</span>
               </>
-            ) : demoUsed ? (
-              <>
-                <UserPlus className="w-5 h-5" />
-                <span>Sign Up for Daily Articles</span>
-              </>
-            ) : (!isDemoUser && !canCreate) ? (
+            ) : !canCreate ? (
               <>
                 <Lock className="w-5 h-5" />
-                <span>Daily Limit Reached</span>
+                <span>{isDemoUser ? `Locked (${demoTimeRemaining} days)` : 'Daily Limit Reached'}</span>
               </>
             ) : (
               <>
