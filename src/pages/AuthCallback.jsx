@@ -1,110 +1,79 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { toast } from 'react-hot-toast'
 
 export default function AuthCallback() {
-  const [searchParams] = useSearchParams()
-  const location = useLocation()
   const navigate = useNavigate()
   const { setAuth } = useAuth()
-  const [debugInfo, setDebugInfo] = useState([])
-
-  const addDebug = (msg) => {
-    console.log('[AUTH CALLBACK]', msg)
-    setDebugInfo(prev => [...prev, msg])
-  }
+  const [error, setError] = useState(null)
 
   useEffect(() => {
-    const processAuth = async () => {
-      addDebug('Starting auth callback processing...')
-      addDebug(`Full URL: ${window.location.href}`)
-      addDebug(`Search params: ${window.location.search}`)
-      addDebug(`Hash: ${window.location.hash}`)
-
-      // Try to get tokens from URL query params
-      let accessToken = searchParams.get('access_token')
-      let refreshToken = searchParams.get('refresh_token')
-      const error = searchParams.get('error')
-      const errorDescription = searchParams.get('error_description')
-
-      // Also check hash (some OAuth providers use hash instead of query)
-      if (!accessToken && window.location.hash) {
-        addDebug('Checking hash for tokens...')
-        const hashParams = new URLSearchParams(window.location.hash.substring(1))
-        accessToken = hashParams.get('access_token')
-        refreshToken = hashParams.get('refresh_token')
-      }
-
-      addDebug(`Access token found: ${accessToken ? 'YES' : 'NO'}`)
-      addDebug(`Refresh token found: ${refreshToken ? 'YES' : 'NO'}`)
-      addDebug(`Error found: ${error ? error : 'NO'}`)
-
-      // Handle error
-      if (error) {
-        addDebug(`Auth error: ${error} - ${errorDescription}`)
-        toast.error(`Sign in failed: ${errorDescription || error}`)
-        setTimeout(() => navigate('/'), 2000)
-        return
-      }
-
-      // Handle success
-      if (accessToken) {
-        addDebug('Access token present, storing...')
+    const handleAuth = async () => {
+      try {
+        console.log('[AUTH CALLBACK] Processing authentication...')
         
-        try {
-          // Store tokens in localStorage first
-          localStorage.setItem('authToken', accessToken)
-          if (refreshToken) {
-            localStorage.setItem('refreshToken', refreshToken)
-          }
-          addDebug('Tokens stored in localStorage')
-
-          // Call setAuth to fetch profile
-          addDebug('Calling setAuth...')
-          await setAuth(accessToken, refreshToken)
-          addDebug('setAuth completed successfully')
-          
-          toast.success('✅ Signed in successfully!')
-          
-          // Navigate to dashboard
-          addDebug('Navigating to dashboard...')
-          navigate('/dashboard', { replace: true })
-          
-        } catch (err) {
-          addDebug(`Error during auth: ${err.message}`)
-          console.error('Auth error:', err)
-          toast.error('Failed to complete sign in')
-          setTimeout(() => navigate('/'), 2000)
+        // Get token from URL hash or query params
+        const hash = window.location.hash.substring(1)
+        const params = new URLSearchParams(hash || window.location.search)
+        
+        const token = params.get('access_token') || params.get('token')
+        const refreshToken = params.get('refresh_token')
+        
+        console.log('[AUTH CALLBACK] Token found:', !!token)
+        
+        if (!token) {
+          console.error('[AUTH CALLBACK] No token found in URL')
+          setError('No authentication token found')
+          return
         }
-      } else {
-        addDebug('No access token found in URL')
-        toast.error('No authentication token received')
-        setTimeout(() => navigate('/'), 2000)
+
+        // Set auth with token
+        await setAuth(token, refreshToken)
+        
+        console.log('[AUTH CALLBACK] Auth successful, redirecting to dashboard...')
+        
+        // Small delay to ensure state is set
+        setTimeout(() => {
+          navigate('/dashboard')
+        }, 500)
+        
+      } catch (error) {
+        console.error('[AUTH CALLBACK] Authentication failed:', error)
+        setError(error.message || 'Authentication failed')
       }
     }
 
-    processAuth()
-  }, [searchParams, navigate, setAuth, location])
+    handleAuth()
+  }, [setAuth, navigate])
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto px-4">
+          <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg className="w-10 h-10 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </div>
+          <h1 className="text-3xl font-bold mb-4">Authentication Error</h1>
+          <p className="text-white/70 mb-6">{error}</p>
+          <button
+            onClick={() => navigate('/')}
+            className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-bold"
+          >
+            Return Home
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="max-w-2xl w-full">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-xl text-white/80 mb-2">Signing you in...</p>
-          <p className="text-sm text-white/50">Please wait while we complete authentication</p>
-        </div>
-
-        {/* DEBUG INFO - Remove this in production */}
-        <div className="glass-strong rounded-xl p-4 max-h-96 overflow-auto">
-          <h3 className="text-sm font-bold mb-2 text-purple-400">Debug Info:</h3>
-          <div className="space-y-1 text-xs font-mono">
-            {debugInfo.map((info, i) => (
-              <div key={i} className="text-white/60">{info}</div>
-            ))}
-          </div>
-        </div>
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-16 h-16 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mx-auto mb-6" />
+        <h2 className="text-2xl font-bold mb-2">Signing you in...</h2>
+        <p className="text-white/60">Please wait while we complete your authentication</p>
       </div>
     </div>
   )
