@@ -70,13 +70,14 @@ export default function Article() {
       
       // CRITICAL: MERGE sections instead of replacing
       let mergedSections = []
+      let newSections = []
       
       if (expanded.sections && expanded.sections.length > 0) {
         // Keep ALL original sections
         mergedSections = [...originalSections]
         
         // Add new sections from expansion
-        const newSections = expanded.sections.filter(newSection => 
+        newSections = expanded.sections.filter(newSection => 
           !originalSections.some(oldSection => 
             oldSection.heading === newSection.heading
           )
