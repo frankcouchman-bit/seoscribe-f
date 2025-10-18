@@ -10,12 +10,45 @@ export default defineConfig({
     minify: 'esbuild',
     target: 'esnext',
     rollupOptions: {
+      external: [],
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          ui: ['framer-motion', 'lucide-react']
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'react-vendor'
+            }
+            if (id.includes('framer-motion')) {
+              return 'framer-motion'
+            }
+            if (id.includes('lucide-react')) {
+              return 'lucide-react'
+            }
+            return 'vendor'
+          }
         }
       }
+    },
+    commonjsOptions: {
+      include: [/node_modules/],
+      transformMixedEsModules: true
+    }
+  },
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      'framer-motion',
+      'zustand',
+      'react-hot-toast',
+      'lucide-react',
+      'react-helmet-async'
+    ],
+    exclude: []
+  },
+  resolve: {
+    alias: {
+      '@': '/src'
     }
   },
   server: {
