@@ -2,7 +2,7 @@ import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useArticles } from '../hooks/useArticles'
-import { ArrowLeft, Save, Download, Copy, Image as ImageIcon } from 'lucide-react'
+import { ArrowLeft, Save, Download, Copy, Image as ImageIcon, Check } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 
 export default function Article() {
@@ -11,6 +11,7 @@ export default function Article() {
   const { currentArticle, loadArticle, saveArticle } = useArticles()
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [copiedSocial, setCopiedSocial] = useState({})
 
   useEffect(() => {
     if (id && id !== 'new') {
@@ -79,19 +80,32 @@ export default function Article() {
     toast.success('⬇️ Downloaded!')
   }
 
+  const handleCopySocial = (platform, text) => {
+    navigator.clipboard.writeText(text)
+    setCopiedSocial({ ...copiedSocial, [platform]: true })
+    toast.success(`Copied ${platform} post!`)
+    setTimeout(() => {
+      setCopiedSocial({ ...copiedSocial, [platform]: false })
+    }, 2000)
+  }
+
   const heroImage = article.image?.image_url || article.image?.url || null
 
-  // Insert FAQs into middle of sections
-  const sectionsWithFaqs = article.sections ? [...article.sections] : []
-  const faqInsertIndex = Math.floor(sectionsWithFaqs.length / 2)
+  // Find conclusion section
+  const conclusionIndex = article.sections?.findIndex(s => 
+    s.heading.toLowerCase().includes('conclusion') || 
+    s.heading.toLowerCase().includes('final thoughts') ||
+    s.heading.toLowerCase().includes('wrapping up')
+  ) ?? -1
+
+  // Split sections: before conclusion, conclusion, after conclusion
+  const sectionsBeforeConclusion = conclusionIndex >= 0 
+    ? article.sections.slice(0, conclusionIndex + 1) 
+    : article.sections || []
   
-  if (article.faqs && article.faqs.length > 0 && faqInsertIndex > 0) {
-    sectionsWithFaqs.splice(faqInsertIndex, 0, {
-      heading: 'Frequently Asked Questions',
-      paragraphs: article.faqs.map(faq => `**${faq.q}**\n\n${faq.a}`),
-      isFaqSection: true
-    })
-  }
+  const sectionsAfterConclusion = conclusionIndex >= 0 
+    ? article.sections.slice(conclusionIndex + 1) 
+    : []
 
   return (
     <div className="min-h-screen pt-8 pb-16">
@@ -172,38 +186,74 @@ export default function Article() {
             <span>🔗 {article.citations?.length || 0} sources</span>
           </div>
 
-          {/* Article Content with Integrated FAQs */}
-          {sectionsWithFaqs.map((section, idx) => (
+          {/* Article Content - Sections before and including conclusion */}
+          {sectionsBeforeConclusion.map((section, idx) => (
             <div key={idx} className="mb-8">
               <h2 className="text-2xl font-bold mb-4 text-purple-300">{section.heading}</h2>
-              {section.isFaqSection ? (
-                <div className="space-y-4 bg-white/5 rounded-xl p-6 border border-white/10">
-                  {article.faqs.map((faq, faqIdx) => (
-                    <div key={faqIdx}>
-                      <h3 className="font-bold text-white mb-2">{faq.q}</h3>
-                      <p className="text-white/70">{faq.a}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                section.paragraphs?.map((para, pIdx) => (
-                  <p key={pIdx} className="text-white/80 mb-4 leading-relaxed">
-                    {para}
-                  </p>
-                ))
-              )}
+              {section.paragraphs?.map((para, pIdx) => (
+                <p key={pIdx} className="text-white/80 mb-4 leading-relaxed">
+                  {para}
+                </p>
+              ))}
             </div>
           ))}
 
-          {/* Social Media Drafts */}
+          {/* FAQs AFTER Conclusion */}
+          {article.faqs && article.faqs.length > 0 && (
+            <div className="mb-8 p-6 bg-white/5 rounded-xl border border-white/10">
+              <h2 className="text-2xl font-bold mb-6 text-purple-300">Frequently Asked Questions</h2>
+              <div className="space-y-6">
+                {article.faqs.map((faq, faqIdx) => (
+                  <div key={faqIdx}>
+                    <h3 className="font-bold text-white mb-2 text-lg">{faq.q}</h3>
+                    <p className="text-white/70 leading-relaxed">{faq.a}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Any sections after conclusion (if any) */}
+          {sectionsAfterConclusion.map((section, idx) => (
+            <div key={`after-${idx}`} className="mb-8">
+              <h2 className="text-2xl font-bold mb-4 text-purple-300">{section.heading}</h2>
+              {section.paragraphs?.map((para, pIdx) => (
+                <p key={pIdx} className="text-white/80 mb-4 leading-relaxed">
+                  {para}
+                </p>
+              ))}
+            </div>
+          ))}
+
+          {/* Social Media Drafts with Copy Buttons */}
           {article.social_media_posts && Object.keys(article.social_media_posts).length > 0 && (
             <div className="mt-12 pt-8 border-t border-white/10">
               <h2 className="text-2xl font-bold mb-6">📱 Social Media Drafts</h2>
               <div className="grid md:grid-cols-2 gap-4">
                 {Object.entries(article.social_media_posts).map(([platform, text]) => (
                   text && (
-                    <div key={platform} className="glass rounded-lg p-4">
-                      <div className="font-bold mb-2 capitalize">{platform}</div>
+                    <div key={platform} className="glass rounded-lg p-4 relative">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="font-bold capitalize">{platform}</div>
+                        <motion.button
+                          onClick={() => handleCopySocial(platform, text)}
+                          className="px-3 py-1 bg-white/10 hover:bg-white/20 rounded text-xs font-semibold flex items-center gap-1"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          {copiedSocial[platform] ? (
+                            <>
+                              <Check className="w-3 h-3" />
+                              Copied
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3 h-3" />
+                              Copy
+                            </>
+                          )}
+                        </motion.button>
+                      </div>
                       <p className="text-sm text-white/70 whitespace-pre-wrap">{text}</p>
                     </div>
                   )
@@ -250,22 +300,40 @@ function generateMarkdown(article) {
     md += `![${article.title}](${article.image.image_url})\n\n`
   }
 
-  const faqInsertIndex = Math.floor((article.sections?.length || 0) / 2)
-  
-  article.sections?.forEach((section, idx) => {
+  // Find conclusion
+  const conclusionIndex = article.sections?.findIndex(s => 
+    s.heading.toLowerCase().includes('conclusion')
+  ) ?? -1
+
+  // Sections before and including conclusion
+  const mainSections = conclusionIndex >= 0 
+    ? article.sections.slice(0, conclusionIndex + 1)
+    : article.sections || []
+
+  mainSections.forEach((section) => {
     md += `## ${section.heading}\n\n`
     section.paragraphs?.forEach((para) => {
       md += `${para}\n\n`
     })
-    
-    // Insert FAQs in middle
-    if (idx === faqInsertIndex && article.faqs?.length > 0) {
-      md += `\n## Frequently Asked Questions\n\n`
-      article.faqs.forEach((faq) => {
-        md += `### ${faq.q}\n\n${faq.a}\n\n`
-      })
-    }
   })
+
+  // FAQs after conclusion
+  if (article.faqs?.length > 0) {
+    md += `\n## Frequently Asked Questions\n\n`
+    article.faqs.forEach((faq) => {
+      md += `### ${faq.q}\n\n${faq.a}\n\n`
+    })
+  }
+
+  // Any remaining sections
+  if (conclusionIndex >= 0 && conclusionIndex < article.sections.length - 1) {
+    article.sections.slice(conclusionIndex + 1).forEach((section) => {
+      md += `## ${section.heading}\n\n`
+      section.paragraphs?.forEach((para) => {
+        md += `${para}\n\n`
+      })
+    })
+  }
 
   if (article.citations?.length > 0) {
     md += `\n## Sources\n\n`
