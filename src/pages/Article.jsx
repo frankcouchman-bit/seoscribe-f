@@ -190,6 +190,7 @@ export default function Article() {
             </div>
           ))}
 
+          {/* Internal Links Section - FIXED SYNTAX */}
           {article.internal_links && article.internal_links.length > 0 && (
             <div className="mt-12 pt-8 border-t border-white/10">
               <h2 className="text-2xl font-bold mb-6">🔗 Internal Links</h2>
@@ -197,12 +198,13 @@ export default function Article() {
                 {article.internal_links.map((link, idx) => {
                   const linkUrl = link.url || '#'
                   const linkTitle = link.suggested_anchor || link.title || 'Link'
+                  
                   return (
                     
                       key={idx}
                       href={linkUrl}
                       target="_blank"
-                      rel="noopener"
+                      rel="noopener noreferrer"
                       className="glass rounded-lg p-4 hover:bg-white/10 transition-colors block"
                     >
                       <div className="font-semibold text-blue-400 mb-1">
@@ -216,6 +218,7 @@ export default function Article() {
             </div>
           )}
 
+          {/* Social Media Drafts */}
           {article.social_media_posts && Object.keys(article.social_media_posts).length > 0 && (
             <div className="mt-12 pt-8 border-t border-white/10">
               <h2 className="text-2xl font-bold mb-6">📱 Social Media Drafts</h2>
@@ -239,6 +242,7 @@ export default function Article() {
             </div>
           )}
 
+          {/* Sources */}
           {article.citations?.length > 0 && (
             <div className="mt-12 pt-8 border-t border-white/10">
               <h2 className="text-2xl font-bold mb-6">📚 Sources</h2>
