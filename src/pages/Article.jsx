@@ -12,20 +12,17 @@ export default function Article() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { currentArticle, loadArticle, saveArticle, setCurrentArticle } = useArticles()
-  const { plan } = useAuth()
+  const { plan, user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [expanding, setExpanding] = useState(false)
 
-  // Get expansion count from article or localStorage
   const getExpansionCount = () => {
     if (!currentArticle) return 0
     
-    // Check article metadata first
     if (currentArticle.expansion_count !== undefined) {
       return currentArticle.expansion_count
     }
     
-    // Check localStorage as fallback
     const articleId = currentArticle.id || 'new'
     const stored = localStorage.getItem(`expansion_count_${articleId}`)
     return stored ? parseInt(stored) : 0
@@ -36,11 +33,23 @@ export default function Article() {
   const maxExpansions = plan === 'pro' || plan === 'enterprise' ? 6 : 2
 
   useEffect(() => {
-    if (id && id !== 'new') {
+    console.log('[ARTICLE PAGE] Mounted with id:', id)
+    console.log('[ARTICLE PAGE] Current article exists:', !!currentArticle)
+    
+    // If id is "new", we're viewing a newly generated article
+    if (id === 'new') {
+      if (!currentArticle) {
+        console.log('[ARTICLE PAGE] No current article, redirecting to dashboard')
+        navigate('/dashboard')
+      } else {
+        console.log('[ARTICLE PAGE] Displaying newly generated article')
+      }
+    } else if (id) {
+      // Load article by ID
       setLoading(true)
       loadArticle(id).finally(() => setLoading(false))
     }
-  }, [id, loadArticle])
+  }, [id, navigate])
 
   useEffect(() => {
     if (currentArticle) {
@@ -51,6 +60,11 @@ export default function Article() {
   }, [currentArticle])
 
   const handleSave = async (article) => {
+    // For demo users, show message that they need to sign up to save
+    if (!user) {
+      toast.error('Sign up to save your articles!')
+      return
+    }
     await saveArticle(article)
   }
 
@@ -72,7 +86,6 @@ export default function Article() {
       console.log('[EXPAND] Current sections:', currentArticle.sections?.length || 0)
       console.log('[EXPAND] Current word count:', currentArticle.word_count || 0)
       
-      // Store ALL original data
       const originalImage = currentArticle.image || currentArticle.hero_image || currentArticle.featured_image
       const originalSections = JSON.parse(JSON.stringify(currentArticle.sections || []))
       const originalWordCount = currentArticle.word_count || 0
@@ -84,7 +97,6 @@ export default function Article() {
       
       console.log('[EXPAND] Stored original data - sections:', originalSections.length)
       
-      // Call backend to expand
       const expanded = await api.expandArticle({
         context: JSON.stringify(currentArticle),
         article_json: currentArticle,
@@ -98,14 +110,11 @@ export default function Article() {
       console.log('[EXPAND] Expansion received from backend')
       console.log('[EXPAND] Backend returned sections:', expanded.sections?.length || 0)
       
-      // CRITICAL: ALWAYS MERGE, NEVER REPLACE
       let mergedSections = [...originalSections]
       let newSectionsAdded = 0
       
       if (expanded.sections && expanded.sections.length > 0) {
-        // Find truly new sections
         const newSections = expanded.sections.filter(newSection => {
-          // Check if this section heading already exists
           const exists = originalSections.some(oldSection => 
             oldSection.heading.toLowerCase().trim() === newSection.heading.toLowerCase().trim()
           )
@@ -123,7 +132,6 @@ export default function Article() {
         }
       }
       
-      // Calculate new word count from ALL sections
       const newWordCount = mergedSections.reduce((total, section) => {
         const sectionWords = section.paragraphs?.reduce((count, para) => 
           count + para.split(' ').filter(w => w.length > 0).length, 0
@@ -133,14 +141,12 @@ export default function Article() {
       
       console.log('[EXPAND] Word count: ', originalWordCount, '->', newWordCount, '(+' + (newWordCount - originalWordCount) + ')')
       
-      // Build complete merged article
       const mergedArticle = {
         ...currentArticle,
         sections: mergedSections,
         word_count: newWordCount,
         reading_time_minutes: Math.ceil(newWordCount / 200),
         expansion_count: expansionCount + 1,
-        // Preserve ALL original metadata
         image: originalImage,
         hero_image: originalImage,
         featured_image: originalImage,
@@ -160,11 +166,9 @@ export default function Article() {
       console.log('  - Has image:', !!mergedArticle.image)
       console.log('  - Expansion count:', mergedArticle.expansion_count)
       
-      // Store expansion count in localStorage
       const articleId = currentArticle.id || 'new'
       localStorage.setItem(`expansion_count_${articleId}`, String(expansionCount + 1))
       
-      // Update state
       setExpansionCount(expansionCount + 1)
       setCurrentArticle(mergedArticle)
       
@@ -220,6 +224,18 @@ export default function Article() {
           <ArrowLeft className="w-5 h-5" />
           Back to Dashboard
         </motion.button>
+
+        {!user && (
+          <motion.div
+            className="mb-8 p-6 bg-yellow-500/20 border border-yellow-500/30 rounded-xl"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <span className="font-semibold">
+              💡 Sign up to save this article and access all features!
+            </span>
+          </motion.div>
+        )}
 
         {!canExpand && (
           <motion.div
