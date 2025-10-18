@@ -5,7 +5,7 @@ export const useAuth = create((set, get) => ({
   user: null,
   plan: 'free',
   usage: {
-    today: { generations: 0, tools: {} },
+    today: { generations: 0 },
     month: { generations: 0 },
     demo: { used: false, canGenerate: true }
   },
@@ -22,29 +22,32 @@ export const useAuth = create((set, get) => ({
 
   checkAuth: async () => {
     const token = localStorage.getItem('authToken')
+    
     if (!token) {
-      // Check demo usage for non-authenticated users
+      // Demo user - check IP usage
       try {
-        const demoUsage = await api.checkDemoUsage()
+        const demoData = await api.checkDemoUsage()
+        console.log('🔍 Demo usage check:', demoData)
         set({ 
           loading: false, 
           user: null,
           plan: 'free',
           usage: {
-            today: { generations: 0, tools: {} },
+            today: { generations: 0 },
             month: { generations: 0 },
             demo: { 
-              used: demoUsage.used || false, 
-              canGenerate: !demoUsage.used 
+              used: demoData.used || false, 
+              canGenerate: demoData.canGenerate !== false
             }
           }
         })
       } catch (error) {
+        console.error('Demo check failed:', error)
         set({ 
           loading: false, 
           user: null,
           usage: {
-            today: { generations: 0, tools: {} },
+            today: { generations: 0 },
             month: { generations: 0 },
             demo: { used: false, canGenerate: true }
           }
@@ -53,13 +56,15 @@ export const useAuth = create((set, get) => ({
       return
     }
 
+    // Authenticated user
     try {
       const profile = await api.getProfile()
+      console.log('👤 Profile loaded:', profile)
       set({ 
         user: profile.user || { email: profile.email },
         plan: profile.plan || 'free',
         usage: profile.usage || {
-          today: { generations: 0, tools: {} },
+          today: { generations: 0 },
           month: { generations: 0 },
           demo: { used: false, canGenerate: true }
         },
@@ -77,38 +82,40 @@ export const useAuth = create((set, get) => ({
     const token = localStorage.getItem('authToken')
     
     if (!token) {
-      // Refresh demo usage
+      // Refresh demo
       try {
-        const demoUsage = await api.checkDemoUsage()
+        const demoData = await api.checkDemoUsage()
+        console.log('🔄 Demo refreshed:', demoData)
         set(state => ({
           usage: {
             ...state.usage,
             demo: {
-              used: demoUsage.used || false,
-              canGenerate: !demoUsage.used
+              used: demoData.used || false,
+              canGenerate: demoData.canGenerate !== false
             }
           }
         }))
       } catch (error) {
-        console.error('Failed to refresh demo usage:', error)
+        console.error('Demo refresh failed:', error)
       }
       return
     }
 
-    // Refresh authenticated user usage
+    // Refresh authenticated user
     try {
       const profile = await api.getProfile()
+      console.log('🔄 Profile refreshed:', profile)
       set({ 
         user: profile.user || { email: profile.email },
         plan: profile.plan || 'free',
         usage: profile.usage || {
-          today: { generations: 0, tools: {} },
+          today: { generations: 0 },
           month: { generations: 0 },
           demo: { used: false, canGenerate: true }
         }
       })
     } catch (error) {
-      console.error('Failed to refresh usage:', error)
+      console.error('Profile refresh failed:', error)
     }
   },
 
@@ -117,19 +124,17 @@ export const useAuth = create((set, get) => ({
     
     if (!user) {
       // Demo users
-      return usage?.demo?.canGenerate !== false
+      const can = usage?.demo?.canGenerate !== false && !usage?.demo?.used
+      console.log('🎯 Can demo generate:', can, usage?.demo)
+      return can
     }
     
     // Authenticated users
     const limit = plan === 'pro' ? 15 : 1
-    return (usage?.today?.generations || 0) < limit
-  },
-
-  canUseTool: (toolName) => {
-    const { plan, usage } = get()
-    const limit = plan === 'pro' ? 10 : 1
-    const used = usage?.today?.tools?.[toolName] || 0
-    return used < limit
+    const used = usage?.today?.generations || 0
+    const can = used < limit
+    console.log(`🎯 Can generate: ${can} (${used}/${limit})`)
+    return can
   },
 
   signOut: () => {
@@ -139,7 +144,7 @@ export const useAuth = create((set, get) => ({
       user: null, 
       plan: 'free', 
       usage: { 
-        today: { generations: 0, tools: {} }, 
+        today: { generations: 0 }, 
         month: { generations: 0 },
         demo: { used: false, canGenerate: true }
       } 
