@@ -20,8 +20,11 @@ export const useArticles = create((set, get) => ({
       
       article.expansion_count = 0
       
+      console.log('[ARTICLES] Article generated:', article)
+      
       set({ currentArticle: article, generating: false })
       
+      // Increment generation count for logged-in users
       const { incrementGeneration, user } = useAuth.getState()
       if (user) {
         incrementGeneration()
@@ -94,5 +97,9 @@ export const useArticles = create((set, get) => ({
 
   setCurrentArticle: (article) => {
     set({ currentArticle: article })
+  },
+
+  clearCurrentArticle: () => {
+    set({ currentArticle: null })
   }
 }))
