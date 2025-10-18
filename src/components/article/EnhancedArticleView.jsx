@@ -47,6 +47,10 @@ export default function EnhancedArticleView({ article, onSave, onExpand }) {
     }
   }
 
+  if (!article) {
+    return null
+  }
+
   return (
     <div className="max-w-5xl mx-auto">
       {/* STICKY HEADER WITH ACTIONS */}
@@ -207,23 +211,25 @@ export default function EnhancedArticleView({ article, onSave, onExpand }) {
             Suggested Internal Links
           </h3>
           <div className="space-y-3">
-            {article.internal_links.map((link, i) => (
-              
-                key={i}
-                href={link.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between p-4 bg-white/5 rounded-lg hover:bg-white/10 transition-colors group"
-              >
-                <div>
-                  <div className="font-semibold">{link.title}</div>
-                  {link.suggested_anchor && (
-                    <div className="text-sm text-white/60">Anchor: {link.suggested_anchor}</div>
-                  )}
-                </div>
-                <ExternalLink className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </a>
-            ))}
+            {article.internal_links.map((link, i) => {
+              return (
+                
+                  key={i}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between p-4 bg-white/5 rounded-lg hover:bg-white/10 transition-colors group"
+                >
+                  <div>
+                    <div className="font-semibold">{link.title}</div>
+                    {link.suggested_anchor && (
+                      <div className="text-sm text-white/60">Anchor: {link.suggested_anchor}</div>
+                    )}
+                  </div>
+                  <ExternalLink className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </a>
+              )
+            })}
           </div>
         </motion.div>
       )}
@@ -262,30 +268,32 @@ export default function EnhancedArticleView({ article, onSave, onExpand }) {
             Sources & Citations
           </h3>
           <div className="space-y-3">
-            {article.citations.map((citation, i) => (
-              
-                key={i}
-                href={citation.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-start gap-3 p-4 bg-white/5 rounded-lg hover:bg-white/10 transition-colors group"
-              >
-                <span className="text-purple-400 font-bold">[{i + 1}]</span>
-                <div className="flex-1">
-                  <div className="font-semibold group-hover:text-purple-400 transition-colors">
-                    {citation.title}
+            {article.citations.map((citation, i) => {
+              return (
+                
+                  key={i}
+                  href={citation.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-start gap-3 p-4 bg-white/5 rounded-lg hover:bg-white/10 transition-colors group"
+                >
+                  <span className="text-purple-400 font-bold">[{i + 1}]</span>
+                  <div className="flex-1">
+                    <div className="font-semibold group-hover:text-purple-400 transition-colors">
+                      {citation.title}
+                    </div>
+                    <div className="text-sm text-white/60 truncate">{citation.url}</div>
                   </div>
-                  <div className="text-sm text-white/60 truncate">{citation.url}</div>
-                </div>
-                <ExternalLink className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </a>
-            ))}
+                  <ExternalLink className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </a>
+              )
+            })}
           </div>
         </motion.div>
       )}
 
       {/* SOCIAL MEDIA POSTS */}
-      {article.social_media_posts && (
+      {article.social_media_posts && Object.keys(article.social_media_posts).length > 0 && (
         <motion.div
           className="mb-12 p-6 glass-strong rounded-xl"
           initial={{ opacity: 0, y: 20 }}
@@ -293,8 +301,10 @@ export default function EnhancedArticleView({ article, onSave, onExpand }) {
         >
           <h3 className="text-xl font-bold mb-4">Social Media Posts</h3>
           <div className="grid md:grid-cols-2 gap-4">
-            {Object.entries(article.social_media_posts).map(([platform, content]) => (
-              content && (
+            {Object.entries(article.social_media_posts).map(([platform, content]) => {
+              if (!content) return null
+              
+              return (
                 <div key={platform} className="p-4 bg-white/5 rounded-lg">
                   <div className="font-semibold capitalize mb-2 text-purple-400">{platform}</div>
                   <div className="text-sm text-white/70 mb-3 line-clamp-3">{content}</div>
@@ -310,7 +320,7 @@ export default function EnhancedArticleView({ article, onSave, onExpand }) {
                   </button>
                 </div>
               )
-            ))}
+            })}
           </div>
         </motion.div>
       )}
@@ -321,7 +331,7 @@ export default function EnhancedArticleView({ article, onSave, onExpand }) {
 function articleToMarkdown(article) {
   let md = `# ${article.title}\n\n`
   
-  if (article.meta?.description) {
+  if (article.meta && article.meta.description) {
     md += `${article.meta.description}\n\n`
   }
   
