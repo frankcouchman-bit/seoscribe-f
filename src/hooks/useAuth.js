@@ -77,11 +77,10 @@ export const useAuth = create((set, get) => ({
 
   initializeUsage: () => {
     const today = new Date().toISOString().split('T')[0]
-    const currentMonth = new Date().toISOString().substring(0, 7) // YYYY-MM
+    const currentMonth = new Date().toISOString().substring(0, 7)
     const storedDate = localStorage.getItem('usage_date')
     const storedMonth = localStorage.getItem('usage_month')
     
-    // Reset daily if new day
     if (storedDate !== today) {
       console.log('[USAGE] New day detected, resetting daily quotas')
       localStorage.setItem('usage_date', today)
@@ -89,7 +88,6 @@ export const useAuth = create((set, get) => ({
       localStorage.setItem('tools_used_today', '0')
     }
     
-    // Reset monthly if new month
     if (storedMonth !== currentMonth) {
       console.log('[USAGE] New month detected, resetting monthly count')
       localStorage.setItem('usage_month', currentMonth)
@@ -103,14 +101,12 @@ export const useAuth = create((set, get) => ({
     const storedDate = localStorage.getItem('usage_date')
     const storedMonth = localStorage.getItem('usage_month')
     
-    // Auto-reset if different day
     if (storedDate !== today) {
       localStorage.setItem('usage_date', today)
       localStorage.setItem('generations_today', '0')
       localStorage.setItem('tools_used_today', '0')
     }
     
-    // Auto-reset if different month
     if (storedMonth !== currentMonth) {
       localStorage.setItem('usage_month', currentMonth)
       localStorage.setItem('monthly_generations', '0')
@@ -143,7 +139,6 @@ export const useAuth = create((set, get) => ({
     
     console.log('[USAGE] Incremented - Daily:', newDaily, 'Monthly:', newMonthly)
     
-    // Force immediate update
     set({ usage: get().getLocalUsage() })
   },
 
@@ -183,7 +178,6 @@ export const useAuth = create((set, get) => ({
       currentGenerations: usage.today.generations
     })
     
-    // Demo user check - 1 MONTH LOCKOUT
     if (!user) {
       const demoUsed = localStorage.getItem('demo_used') === 'true'
       const demoDate = localStorage.getItem('demo_date')
@@ -206,7 +200,6 @@ export const useAuth = create((set, get) => ({
       return !demoUsed
     }
 
-    // Logged in user check
     if (plan === 'pro' || plan === 'enterprise') {
       return usage.today.generations < 15
     } else {
