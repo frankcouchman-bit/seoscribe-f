@@ -14,6 +14,7 @@ export default function ArticleGenerator() {
   const [selectedHeadline, setSelectedHeadline] = useState('')
   const [showHeadlines, setShowHeadlines] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
+  const [forceUpdate, setForceUpdate] = useState(0)
   
   const { generateArticle, generating } = useArticles()
   const { canGenerate, plan, refreshUsage, user, usage } = useAuth()
@@ -21,13 +22,22 @@ export default function ArticleGenerator() {
 
   const canCreate = canGenerate()
   const isDemoUser = !user
-  const demoUsed = usage?.demo?.used || false
+  
+  // Check localStorage for demo
+  const demoUsedStorage = localStorage.getItem('demo_used') === 'true'
+  const demoUsed = isDemoUser && (usage?.demo?.used || demoUsedStorage)
+  
   const currentGenerations = usage?.today?.generations || 0
   const maxGenerations = plan === 'pro' ? 15 : 1
 
   useEffect(() => {
     refreshUsage()
   }, [])
+
+  // Force re-render after state changes
+  useEffect(() => {
+    setForceUpdate(prev => prev + 1)
+  }, [usage, demoUsed])
 
   const generateHeadlines = () => {
     if (!topic.trim()) {
@@ -51,6 +61,7 @@ export default function ArticleGenerator() {
     e.preventDefault()
     if (!topic.trim()) return
     
+    // Check demo lockout
     if (isDemoUser && demoUsed) {
       setShowAuthModal(true)
       return
@@ -68,13 +79,17 @@ export default function ArticleGenerator() {
     try {
       const finalTopic = selectedHeadline || topic
       await generateArticle(finalTopic, websiteUrl)
+      
+      // Force refresh and re-render
       await refreshUsage()
+      setForceUpdate(prev => prev + 1)
+      
       navigate('/article/new')
     } catch (error) {
       console.error('Generation failed:', error)
       await refreshUsage()
       
-      if (isDemoUser && error.message.includes('Demo limit')) {
+      if (isDemoUser && (error.message.includes('Demo limit') || error.message.includes('Quota'))) {
         setShowAuthModal(true)
       }
     }
@@ -86,11 +101,12 @@ export default function ArticleGenerator() {
         className="glass-strong rounded-2xl p-8"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
+        key={forceUpdate}
       >
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
-              {canCreate ? <Sparkles className="w-6 h-6" /> : <Lock className="w-6 h-6" />}
+              {canCreate && !demoUsed ? <Sparkles className="w-6 h-6" /> : <Lock className="w-6 h-6" />}
             </div>
             <div>
               <h2 className="text-2xl font-bold">Generate Article</h2>
@@ -103,8 +119,8 @@ export default function ArticleGenerator() {
             </div>
           </div>
           
-          {/* USAGE COUNTER - SHOWS REAL NUMBERS */}
-          <div className="text-right">
+          {/* USAGE COUNTER - FORCE DISPLAY */}
+          <div className="text-right" key={`counter-${currentGenerations}-${demoUsed}`}>
             <div className="text-3xl font-black gradient-text">
               {isDemoUser 
                 ? (demoUsed ? '1/1' : '0/1')
@@ -138,7 +154,7 @@ export default function ArticleGenerator() {
                   <ul className="text-white/70 mb-4 space-y-1 text-sm">
                     <li>✅ <strong>1 free article every day</strong></li>
                     <li>✅ Save & edit your articles</li>
-                    <li>✅ Access to all SEO tools</li>
+                    <li>✅ Access to all SEO tools (1 use per tool/day)</li>
                     <li>✅ Export in multiple formats</li>
                   </ul>
                   <motion.button
@@ -163,8 +179,8 @@ export default function ArticleGenerator() {
               <div className="font-bold text-red-400 mb-1">Daily Limit Reached</div>
               <div className="text-white/70">
                 {plan === 'free'
-                  ? "You've used your 1 free article today. Upgrade to Pro for 15 articles/day!"
-                  : "You've reached your daily limit of 15 articles. Limit resets tomorrow."}
+                  ? "You've used your 1 free article today. Upgrade to Pro for 15 articles/day + 10 tool uses per tool/day!"
+                  : "You've reached your daily limit. Limits reset tomorrow."}
               </div>
             </div>
           </div>
@@ -183,11 +199,11 @@ export default function ArticleGenerator() {
               }}
               placeholder="e.g., Best Project Management Tools 2025"
               className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/50 transition-all disabled:opacity-50"
-              disabled={generating || (isDemoUser && demoUsed)}
+              disabled={generating || demoUsed}
             />
           </div>
 
-          {topic.trim() && !showHeadlines && !generating && canCreate && !(isDemoUser && demoUsed) && (
+          {topic.trim() && !showHeadlines && !generating && canCreate && !demoUsed && (
             <motion.button
               type="button"
               onClick={generateHeadlines}
@@ -241,7 +257,7 @@ export default function ArticleGenerator() {
               onChange={(e) => setWebsiteUrl(e.target.value)}
               placeholder="https://yourwebsite.com"
               className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/50 transition-all disabled:opacity-50"
-              disabled={generating || (isDemoUser && demoUsed)}
+              disabled={generating || demoUsed}
             />
             <p className="text-xs text-white/50 mt-2">
               Add your website URL for internal links
@@ -250,17 +266,17 @@ export default function ArticleGenerator() {
 
           <motion.button
             type="submit"
-            disabled={generating || !topic.trim() || (isDemoUser && demoUsed)}
+            disabled={generating || !topic.trim() || demoUsed}
             className="w-full py-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-bold text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            whileHover={{ scale: (generating || (isDemoUser && demoUsed)) ? 1 : 1.02 }}
-            whileTap={{ scale: (generating || (isDemoUser && demoUsed)) ? 1 : 0.98 }}
+            whileHover={{ scale: (generating || demoUsed) ? 1 : 1.02 }}
+            whileTap={{ scale: (generating || demoUsed) ? 1 : 0.98 }}
           >
             {generating ? (
               <>
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 <span>Generating Article...</span>
               </>
-            ) : (isDemoUser && demoUsed) ? (
+            ) : demoUsed ? (
               <>
                 <UserPlus className="w-5 h-5" />
                 <span>Sign Up for Daily Articles</span>
