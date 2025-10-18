@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast'
 
 export default function EnhancedArticleView({ article, onSave, onExpand }) {
   const [saving, setSaving] = useState(false)
+  const [imageError, setImageError] = useState(false)
 
   const handleCopy = () => {
     const markdown = articleToMarkdown(article)
@@ -38,6 +39,47 @@ export default function EnhancedArticleView({ article, onSave, onExpand }) {
     return null
   }
 
+  // Helper to get image URL from various possible formats
+  const getImageUrl = () => {
+    // Check various possible image locations
+    const imageData = article.image || article.hero_image || article.featured_image
+    
+    if (!imageData) {
+      console.log('[IMAGE] No image data found in article')
+      return null
+    }
+
+    console.log('[IMAGE] Image data found:', imageData)
+
+    // If it's a string, it's probably a direct URL
+    if (typeof imageData === 'string') {
+      return imageData
+    }
+
+    // If it's an object, check for various properties
+    if (typeof imageData === 'object') {
+      // Check for direct URL
+      if (imageData.url || imageData.image_url) {
+        return imageData.url || imageData.image_url
+      }
+
+      // Check for base64 encoded image
+      if (imageData.b64 || imageData.image_b64 || imageData.base64) {
+        const b64Data = imageData.b64 || imageData.image_b64 || imageData.base64
+        return `data:image/png;base64,${b64Data}`
+      }
+
+      // Check if the object itself has properties that indicate it's image data
+      if (imageData.data) {
+        return `data:image/png;base64,${imageData.data}`
+      }
+    }
+
+    return null
+  }
+
+  const imageUrl = getImageUrl()
+
   return (
     <div className="max-w-5xl mx-auto">
       {/* ACTIONS */}
@@ -66,6 +108,37 @@ export default function EnhancedArticleView({ article, onSave, onExpand }) {
           )}
         </div>
       </div>
+
+      {/* HERO IMAGE */}
+      {imageUrl && !imageError && (
+        <motion.div
+          className="mb-8 rounded-2xl overflow-hidden shadow-2xl border-2 border-purple-500/20"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <img
+            src={imageUrl}
+            alt={article.title}
+            className="w-full h-auto object-cover"
+            onError={(e) => {
+              console.error('[IMAGE] Failed to load image:', imageUrl)
+              setImageError(true)
+            }}
+            onLoad={() => {
+              console.log('[IMAGE] Image loaded successfully')
+            }}
+          />
+        </motion.div>
+      )}
+
+      {/* DEBUG: Show if image should be there but isn't loading */}
+      {imageUrl && imageError && (
+        <div className="mb-8 p-6 bg-red-500/10 border border-red-500/30 rounded-xl">
+          <p className="text-sm text-red-400">
+            ⚠️ Image failed to load. This might be a temporary issue.
+          </p>
+        </div>
+      )}
 
       {/* TITLE */}
       <motion.h1 className="text-5xl font-black mb-6 leading-tight" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
