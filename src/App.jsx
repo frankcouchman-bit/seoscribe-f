@@ -9,7 +9,7 @@ import SEOTools from './pages/SEOTools'
 import Pricing from './pages/Pricing'
 import AuthCallback from './pages/AuthCallback'
 import Home from './pages/Home'
-import ProtectedRoute from './components/ProtectedRoute' // <- keep path/casing exact
+import ProtectedRoute from './components/ProtectedRoute.jsx' // <- keep .jsx and exact casing
 
 function App() {
   const { checkAuth, loading } = useAuth()
@@ -40,7 +40,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/article/:id" element={<Article />} />
+        <Route path="/article/:id" element={<Article />} />
           <Route
             path="/library"
             element={
