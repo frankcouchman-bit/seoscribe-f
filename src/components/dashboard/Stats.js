@@ -1,28 +1,34 @@
 import { motion } from 'framer-motion'
 import { FileText, TrendingUp } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 export default function Stats() {
-  const { usage, plan } = useAuth()
+  const { usage, plan, user } = useAuth()
+  const [mounted, setMounted] = useState(false)
 
-  const today = usage?.today?.generations || 0
-  const thisMonth = usage?.thisMonth?.total || 0
-  const maxToday = plan === 'pro' || plan === 'enterprise' ? 15 : 1
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
-  // Auto-refresh every 2 seconds
+  // Force re-render every second to show real-time updates
   useEffect(() => {
     const interval = setInterval(() => {
       const { getLocalUsage } = useAuth.getState()
-      useAuth.setState({ usage: getLocalUsage() })
-    }, 2000)
+      const newUsage = getLocalUsage()
+      useAuth.setState({ usage: newUsage })
+    }, 1000)
     return () => clearInterval(interval)
   }, [])
+
+  const today = usage?.today?.generations || 0
+  const thisMonth = usage?.thisMonth?.total || 0
+  const maxToday = (plan === 'pro' || plan === 'enterprise') ? 15 : 1
 
   const stats = [
     {
       label: 'Articles Today',
-      value: `${today}/${maxToday}`,
+      value: user ? `${today}/${maxToday}` : `${today}/1`,
       icon: FileText,
       color: 'from-blue-500 to-cyan-500',
       progress: (today / maxToday) * 100
@@ -35,6 +41,8 @@ export default function Stats() {
       progress: null
     }
   ]
+
+  if (!mounted) return null
 
   return (
     <div className="grid md:grid-cols-2 gap-6 mb-8">
@@ -59,10 +67,11 @@ export default function Stats() {
           {stat.progress !== null && (
             <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
               <motion.div
+                key={`progress-${today}`}
                 className={`h-full bg-gradient-to-r ${stat.color}`}
                 initial={{ width: 0 }}
                 animate={{ width: `${Math.min(stat.progress, 100)}%` }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
+                transition={{ duration: 0.5 }}
               />
             </div>
           )}
