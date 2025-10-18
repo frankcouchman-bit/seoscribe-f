@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { toast } from 'react-hot-toast'
 
 export default function AuthCallback() {
   const [searchParams] = useSearchParams()
@@ -8,22 +9,48 @@ export default function AuthCallback() {
   const { setAuth } = useAuth()
 
   useEffect(() => {
-    const accessToken = searchParams.get('access_token')
-    const refreshToken = searchParams.get('refresh_token')
-    const error = searchParams.get('error')
+    const processAuth = async () => {
+      // Get tokens from URL
+      const accessToken = searchParams.get('access_token')
+      const refreshToken = searchParams.get('refresh_token')
+      const error = searchParams.get('error')
+      const errorDescription = searchParams.get('error_description')
 
-    if (error) {
-      console.error('Auth error:', error)
-      navigate('/')
-      return
+      // Handle error
+      if (error) {
+        console.error('Auth error:', error, errorDescription)
+        toast.error('Sign in failed. Please try again.')
+        navigate('/')
+        return
+      }
+
+      // Handle success
+      if (accessToken) {
+        console.log('Access token received, setting auth...')
+        
+        // Store tokens
+        localStorage.setItem('authToken', accessToken)
+        if (refreshToken) {
+          localStorage.setItem('refreshToken', refreshToken)
+        }
+
+        // Update auth state
+        await setAuth(accessToken, refreshToken)
+        
+        toast.success('Signed in successfully!')
+        
+        // Small delay to ensure state is updated
+        setTimeout(() => {
+          navigate('/dashboard')
+        }, 100)
+      } else {
+        console.error('No access token in callback')
+        toast.error('Authentication failed')
+        navigate('/')
+      }
     }
 
-    if (accessToken) {
-      setAuth(accessToken, refreshToken)
-      navigate('/dashboard')
-    } else {
-      navigate('/')
-    }
+    processAuth()
   }, [searchParams, navigate, setAuth])
 
   return (
