@@ -11,7 +11,6 @@ export default function Stats() {
     setMounted(true)
   }, [])
 
-  // Force re-render every second to show real-time updates
   useEffect(() => {
     const interval = setInterval(() => {
       const { getLocalUsage } = useAuth.getState()
