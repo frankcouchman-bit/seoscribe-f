@@ -32,13 +32,11 @@ class APIClient {
     return response.json()
   }
 
+  // Auth
   async requestMagicLink(email) {
     return this.request('/auth/magic-link', {
       method: 'POST',
-      body: JSON.stringify({ 
-        email,
-        redirect: window.location.origin + '/dashboard'
-      })
+      body: JSON.stringify({ email, redirect: window.location.origin + '/dashboard' })
     })
   }
 
@@ -61,25 +59,22 @@ class APIClient {
     return this.request('/api/demo-usage')
   }
 
+  // Stripe
   async createCheckoutSession(successUrl, cancelUrl) {
     return this.request('/api/stripe/create-checkout', {
       method: 'POST',
-      body: JSON.stringify({ 
-        successUrl: successUrl || `${window.location.origin}/success`,
-        cancelUrl: cancelUrl || window.location.origin
-      })
+      body: JSON.stringify({ successUrl, cancelUrl })
     })
   }
 
   async createPortalSession(returnUrl) {
     return this.request('/api/stripe/portal', {
       method: 'POST',
-      body: JSON.stringify({ 
-        returnUrl: returnUrl || window.location.origin
-      })
+      body: JSON.stringify({ returnUrl })
     })
   }
 
+  // Articles
   async generateArticle(data) {
     return this.request('/api/draft', {
       method: 'POST',
@@ -115,6 +110,19 @@ class APIClient {
     })
   }
 
+  // Templates
+  async getTemplates() {
+    return this.request('/api/templates')
+  }
+
+  async generateFromTemplate(data) {
+    return this.request('/api/templates/generate', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    })
+  }
+
+  // SEO Tools
   async analyzeHeadline(headline) {
     return this.request('/api/tools/headline-analyzer', {
       method: 'POST',
@@ -171,10 +179,26 @@ class APIClient {
     })
   }
 
+  async editSection(instruction, section) {
+    return this.request('/api/tools/section', {
+      method: 'POST',
+      body: JSON.stringify({ instruction, section })
+    })
+  }
+
+  // AI Assistant
   async getAIAssistance(prompt, context, keyword) {
     return this.request('/api/ai-assistant', {
       method: 'POST',
       body: JSON.stringify({ prompt, context, keyword })
+    })
+  }
+
+  // Expand
+  async expandArticle(data) {
+    return this.request('/api/expand', {
+      method: 'POST',
+      body: JSON.stringify(data)
     })
   }
 }
