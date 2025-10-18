@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
-import { useState } from 'react'
-import { Sparkles, AlertCircle, Lock, Download, Copy, Save } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Sparkles, AlertCircle, Lock } from 'lucide-react'
 import { useArticles } from '../../hooks/useArticles'
 import { useAuth } from '../../hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
@@ -9,31 +9,39 @@ import { toast } from 'react-hot-toast'
 export default function ArticleGenerator() {
   const [topic, setTopic] = useState('')
   const [websiteUrl, setWebsiteUrl] = useState('')
-  const [generatedHeadlines, setGeneratedHeadlines] = useState([])
-  const [selectedHeadline, setSelectedHeadline] = useState(null)
+  const [headlines, setHeadlines] = useState([])
+  const [selectedHeadline, setSelectedHeadline] = useState('')
   const [showHeadlines, setShowHeadlines] = useState(false)
-  const { generateArticle, generating, saveArticle } = useArticles()
+  
+  const { generateArticle, generating } = useArticles()
   const { canGenerate, plan, refreshUsage, user, usage } = useAuth()
   const navigate = useNavigate()
 
   const canCreate = canGenerate()
   const isDemoUser = !user
+  const currentGenerations = usage?.today?.generations || 0
+  const maxGenerations = plan === 'pro' ? 15 : 1
 
-  const handleGenerateHeadlines = async () => {
+  // Refresh usage on mount
+  useEffect(() => {
+    refreshUsage()
+  }, [refreshUsage])
+
+  const generateHeadlines = () => {
     if (!topic.trim()) {
-      toast.error('Please enter a topic first')
+      toast.error('Enter a topic first')
       return
     }
 
-    const headlines = [
+    const baseTopics = [
       `${topic}: The Complete Guide for 2025`,
       `Everything You Need to Know About ${topic}`,
       `${topic}: Ultimate Beginner's Guide`,
-      `The Best Way to ${topic} in 2025`,
+      `How to Master ${topic} in 2025`,
       `${topic}: Expert Tips and Strategies`
     ]
     
-    setGeneratedHeadlines(headlines)
+    setHeadlines(baseTopics)
     setShowHeadlines(true)
   }
 
@@ -53,16 +61,18 @@ export default function ArticleGenerator() {
     try {
       const finalTopic = selectedHeadline || topic
       await generateArticle(finalTopic, websiteUrl)
+      
+      // Refresh usage to update counter
       await refreshUsage()
+      
+      // Navigate to article
       navigate('/article/new')
     } catch (error) {
       console.error('Generation failed:', error)
+      // Still refresh usage even on error
       await refreshUsage()
     }
   }
-
-  const currentGenerations = usage?.today?.generations || 0
-  const maxGenerations = plan === 'pro' ? 15 : 1
 
   return (
     <motion.div
@@ -80,7 +90,7 @@ export default function ArticleGenerator() {
             <p className="text-white/60">
               {isDemoUser 
                 ? 'Try it free - no account needed'
-                : 'Create SEO-optimized content in seconds'
+                : 'Create SEO-optimized content'
               }
             </p>
           </div>
@@ -91,7 +101,7 @@ export default function ArticleGenerator() {
           <div className="text-3xl font-black gradient-text">
             {currentGenerations}/{maxGenerations}
           </div>
-          <div className="text-sm text-white/60">Articles Today</div>
+          <div className="text-sm text-white/60">Today</div>
         </div>
       </div>
 
@@ -119,7 +129,11 @@ export default function ArticleGenerator() {
           <input
             type="text"
             value={topic}
-            onChange={(e) => setTopic(e.target.value)}
+            onChange={(e) => {
+              setTopic(e.target.value)
+              setShowHeadlines(false)
+              setSelectedHeadline('')
+            }}
             placeholder="e.g., Best Project Management Tools 2025"
             className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/50 transition-all disabled:opacity-50"
             disabled={generating || !canCreate}
@@ -127,13 +141,13 @@ export default function ArticleGenerator() {
         </div>
 
         {/* A/B Headline Generator */}
-        {topic.trim() && !showHeadlines && (
+        {topic.trim() && !showHeadlines && !generating && canCreate && (
           <motion.button
             type="button"
-            onClick={handleGenerateHeadlines}
+            onClick={generateHeadlines}
             className="w-full py-2 bg-white/10 hover:bg-white/20 rounded-lg font-semibold text-sm transition-colors"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
           >
             ✨ Generate A/B Tested Headlines
           </motion.button>
@@ -145,8 +159,8 @@ export default function ArticleGenerator() {
             animate={{ opacity: 1, height: 'auto' }}
             className="space-y-2"
           >
-            <label className="block text-sm font-semibold mb-2">Choose Your Headline</label>
-            {generatedHeadlines.map((headline, i) => (
+            <label className="block text-sm font-semibold mb-2">Choose Your Headline (Optional)</label>
+            {headlines.map((headline, i) => (
               <motion.button
                 key={i}
                 type="button"
@@ -156,6 +170,9 @@ export default function ArticleGenerator() {
                     ? 'bg-purple-500/30 border-2 border-purple-500'
                     : 'bg-white/10 border border-white/20 hover:bg-white/15'
                 }`}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.05 }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
@@ -178,7 +195,7 @@ export default function ArticleGenerator() {
             disabled={generating || !canCreate}
           />
           <p className="text-xs text-white/50 mt-2">
-            Add your website URL to automatically include relevant internal links
+            Add your website URL for internal links
           </p>
         </div>
 
