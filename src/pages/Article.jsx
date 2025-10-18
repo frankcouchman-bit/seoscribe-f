@@ -15,7 +15,23 @@ export default function Article() {
   const { plan } = useAuth()
   const [loading, setLoading] = useState(false)
   const [expanding, setExpanding] = useState(false)
-  const [expansionCount, setExpansionCount] = useState(0)
+
+  // Get expansion count from article or localStorage
+  const getExpansionCount = () => {
+    if (!currentArticle) return 0
+    
+    // Check article metadata first
+    if (currentArticle.expansion_count !== undefined) {
+      return currentArticle.expansion_count
+    }
+    
+    // Check localStorage as fallback
+    const articleId = currentArticle.id || 'new'
+    const stored = localStorage.getItem(`expansion_count_${articleId}`)
+    return stored ? parseInt(stored) : 0
+  }
+
+  const [expansionCount, setExpansionCount] = useState(getExpansionCount())
 
   const maxExpansions = plan === 'pro' || plan === 'enterprise' ? 6 : 2
 
@@ -24,11 +40,15 @@ export default function Article() {
       setLoading(true)
       loadArticle(id).finally(() => setLoading(false))
     }
-    
-    if (currentArticle && currentArticle.expansion_count !== undefined) {
-      setExpansionCount(currentArticle.expansion_count)
+  }, [id, loadArticle])
+
+  useEffect(() => {
+    if (currentArticle) {
+      const count = getExpansionCount()
+      setExpansionCount(count)
+      console.log('[ARTICLE] Expansion count loaded:', count)
     }
-  }, [id, loadArticle, currentArticle])
+  }, [currentArticle])
 
   const handleSave = async (article) => {
     await saveArticle(article)
@@ -48,82 +68,112 @@ export default function Article() {
     
     setExpanding(true)
     try {
-      console.log('[EXPAND] Starting expansion...')
+      console.log('[EXPAND] Starting expansion', expansionCount + 1, 'of', maxExpansions)
       console.log('[EXPAND] Current sections:', currentArticle.sections?.length || 0)
+      console.log('[EXPAND] Current word count:', currentArticle.word_count || 0)
       
-      // Store original data
+      // Store ALL original data
       const originalImage = currentArticle.image || currentArticle.hero_image || currentArticle.featured_image
-      const originalSections = [...(currentArticle.sections || [])]
+      const originalSections = JSON.parse(JSON.stringify(currentArticle.sections || []))
       const originalWordCount = currentArticle.word_count || 0
+      const originalFaqs = currentArticle.faqs || []
+      const originalCitations = currentArticle.citations || []
+      const originalSocialPosts = currentArticle.social_media_posts || {}
+      const originalAlternativeTitles = currentArticle.alternative_titles || []
+      const originalInternalLinks = currentArticle.internal_links || []
+      
+      console.log('[EXPAND] Stored original data - sections:', originalSections.length)
       
       // Call backend to expand
       const expanded = await api.expandArticle({
-        context: currentArticle,
+        context: JSON.stringify(currentArticle),
         article_json: currentArticle,
         keyword: currentArticle.title,
         current_word_count: originalWordCount,
+        current_section_count: originalSections.length,
+        expansion_number: expansionCount + 1,
         expand_only: true
       })
       
-      console.log('[EXPAND] Expansion received')
-      console.log('[EXPAND] New sections:', expanded.sections?.length || 0)
+      console.log('[EXPAND] Expansion received from backend')
+      console.log('[EXPAND] Backend returned sections:', expanded.sections?.length || 0)
       
-      // CRITICAL: MERGE sections instead of replacing
-      let mergedSections = []
-      let newSections = []
+      // CRITICAL: ALWAYS MERGE, NEVER REPLACE
+      let mergedSections = [...originalSections]
+      let newSectionsAdded = 0
       
       if (expanded.sections && expanded.sections.length > 0) {
-        // Keep ALL original sections
-        mergedSections = [...originalSections]
-        
-        // Add new sections from expansion
-        newSections = expanded.sections.filter(newSection => 
-          !originalSections.some(oldSection => 
-            oldSection.heading === newSection.heading
+        // Find truly new sections
+        const newSections = expanded.sections.filter(newSection => {
+          // Check if this section heading already exists
+          const exists = originalSections.some(oldSection => 
+            oldSection.heading.toLowerCase().trim() === newSection.heading.toLowerCase().trim()
           )
-        )
+          return !exists
+        })
         
-        console.log('[EXPAND] Adding', newSections.length, 'new sections')
-        mergedSections = [...mergedSections, ...newSections]
-      } else {
-        // If backend didn't return sections, keep originals
-        mergedSections = originalSections
+        console.log('[EXPAND] Found', newSections.length, 'new unique sections')
+        
+        if (newSections.length > 0) {
+          mergedSections = [...originalSections, ...newSections]
+          newSectionsAdded = newSections.length
+          console.log('[EXPAND] Merged sections - total now:', mergedSections.length)
+        } else {
+          console.log('[EXPAND] No new sections to add, keeping original')
+        }
       }
       
-      // Calculate new word count
+      // Calculate new word count from ALL sections
       const newWordCount = mergedSections.reduce((total, section) => {
         const sectionWords = section.paragraphs?.reduce((count, para) => 
-          count + para.split(' ').length, 0
+          count + para.split(' ').filter(w => w.length > 0).length, 0
         ) || 0
         return total + sectionWords
       }, 0)
       
-      console.log('[EXPAND] Word count: ', originalWordCount, '->', newWordCount)
+      console.log('[EXPAND] Word count: ', originalWordCount, '->', newWordCount, '(+' + (newWordCount - originalWordCount) + ')')
       
-      // Build merged article
+      // Build complete merged article
       const mergedArticle = {
         ...currentArticle,
-        ...expanded,
         sections: mergedSections,
         word_count: newWordCount,
         reading_time_minutes: Math.ceil(newWordCount / 200),
-        expansion_count: expansionCount + 1
+        expansion_count: expansionCount + 1,
+        // Preserve ALL original metadata
+        image: originalImage,
+        hero_image: originalImage,
+        featured_image: originalImage,
+        faqs: originalFaqs,
+        citations: originalCitations,
+        social_media_posts: originalSocialPosts,
+        alternative_titles: originalAlternativeTitles,
+        internal_links: originalInternalLinks,
+        title: currentArticle.title,
+        meta: currentArticle.meta,
+        seo_score: currentArticle.seo_score
       }
       
-      // RESTORE original image
-      if (originalImage) {
-        mergedArticle.image = originalImage
-        mergedArticle.hero_image = originalImage
-        mergedArticle.featured_image = originalImage
-      }
+      console.log('[EXPAND] Final merged article:')
+      console.log('  - Sections:', mergedArticle.sections.length)
+      console.log('  - Word count:', mergedArticle.word_count)
+      console.log('  - Has image:', !!mergedArticle.image)
+      console.log('  - Expansion count:', mergedArticle.expansion_count)
       
-      console.log('[EXPAND] Final article sections:', mergedArticle.sections.length)
-      console.log('[EXPAND] Final word count:', mergedArticle.word_count)
+      // Store expansion count in localStorage
+      const articleId = currentArticle.id || 'new'
+      localStorage.setItem(`expansion_count_${articleId}`, String(expansionCount + 1))
       
+      // Update state
       setExpansionCount(expansionCount + 1)
       setCurrentArticle(mergedArticle)
       
-      toast.success(`✨ Added ${newSections.length} new sections! Article now ${mergedArticle.word_count} words.`)
+      if (newSectionsAdded > 0) {
+        toast.success(`✨ Added ${newSectionsAdded} new sections! Article now ${mergedArticle.word_count} words (${expansionCount + 1}/${maxExpansions})`)
+      } else {
+        toast.error('No new content was added. Try again or contact support.')
+      }
+      
     } catch (error) {
       console.error('[EXPAND] Error:', error)
       toast.error(error.message || 'Expansion failed')
@@ -179,7 +229,7 @@ export default function Article() {
           >
             <span className="font-semibold">
               ⚠️ Maximum expansions reached ({expansionCount}/{maxExpansions})
-              {plan === 'free' && ' - Upgrade to Pro for 6 expansions!'}
+              {plan === 'free' && ' - Upgrade to Pro for 6 expansions per article!'}
             </span>
           </motion.div>
         )}
@@ -193,7 +243,7 @@ export default function Article() {
             <div className="flex items-center gap-3">
               <div className="w-6 h-6 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
               <span className="font-semibold">
-                Expanding article... Adding 3-4 new sections with 300-500 words each
+                Expanding article... Adding 3-4 new sections with 300-500 words each (Expansion {expansionCount + 1}/{maxExpansions})
               </span>
             </div>
           </motion.div>
