@@ -6,11 +6,35 @@ import { useAuth } from './useAuth'
 export const useArticles = create((set, get) => ({
   articles: [],
   currentArticle: null,
-  loading: false,
   generating: false,
+  loading: false,
 
-  setCurrentArticle: (article) => {
-    set({ currentArticle: article })
+  generateArticle: async (topic, websiteUrl) => {
+    set({ generating: true })
+    try {
+      const article = await api.generateArticle({ 
+        keyword: topic,
+        website_url: websiteUrl 
+      })
+      
+      set({ currentArticle: article, generating: false })
+      
+      // CRITICAL: Refresh usage immediately after generation
+      const { refreshUsage } = useAuth.getState()
+      await refreshUsage()
+      
+      toast.success('✨ Article generated!')
+      return article
+    } catch (error) {
+      set({ generating: false })
+      
+      // Also refresh on error (in case quota was used)
+      const { refreshUsage } = useAuth.getState()
+      await refreshUsage()
+      
+      toast.error(error.message || 'Generation failed')
+      throw error
+    }
   },
 
   fetchArticles: async () => {
@@ -19,90 +43,35 @@ export const useArticles = create((set, get) => ({
       const articles = await api.getArticles()
       set({ articles, loading: false })
     } catch (error) {
-      console.error('Failed to load articles:', error)
+      console.error('Fetch articles failed:', error)
       set({ loading: false })
     }
   },
 
-  generateArticle: async (topic, websiteUrl) => {
-    set({ generating: true })
-    
+  loadArticle: async (id) => {
     try {
-      const response = await api.generateArticle({
-        topic,
-        website_url: websiteUrl,
-        tone: 'professional',
-        target_word_count: 3000,
-        generate_social: true,
-        research: true
-      })
-      
-      // UPDATE COUNTER + SAVE DATE
-      const { user, usage } = useAuth.getState()
-      const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD
-      
-      if (!user) {
-        // Demo user - save with date
-        localStorage.setItem('demo_used', 'true')
-        localStorage.setItem('demo_date', today)
-        useAuth.setState({
-          usage: {
-            ...usage,
-            demo: { used: true, canGenerate: false }
-          }
-        })
-      } else {
-        // Signed in user - increment and save date
-        const lastDate = localStorage.getItem('last_generation_date')
-        let currentCount = 0
-        
-        // Reset if new day
-        if (lastDate !== today) {
-          currentCount = 0
-          localStorage.setItem('last_generation_date', today)
-        } else {
-          currentCount = parseInt(localStorage.getItem('generation_count') || '0', 10)
-        }
-        
-        // Increment
-        const newCount = currentCount + 1
-        localStorage.setItem('generation_count', String(newCount))
-        localStorage.setItem('last_generation_date', today)
-        
-        useAuth.setState({
-          usage: {
-            ...usage,
-            today: { ...usage?.today, generations: newCount }
-          }
-        })
-      }
-      
-      set({ currentArticle: response, generating: false })
-      toast.success('✨ Article generated!')
-      
-      setTimeout(() => get().fetchArticles(), 1000)
-      
-      return response
+      const article = await api.getArticle(id)
+      set({ currentArticle: article })
+      return article
     } catch (error) {
-      set({ generating: false })
-      toast.error(error.message || 'Generation failed')
+      console.error('Load article failed:', error)
       throw error
     }
   },
 
   saveArticle: async (article) => {
     try {
-      const saved = await api.saveArticle({
-        title: article.title,
-        data: article,
-        word_count: article.word_count,
-        reading_time_minutes: article.reading_time_minutes
-      })
-      toast.success('💾 Article saved!')
+      if (article.id) {
+        await api.updateArticle(article.id, article)
+        toast.success('Article updated!')
+      } else {
+        const saved = await api.saveArticle(article)
+        set({ currentArticle: saved })
+        toast.success('Article saved!')
+      }
       get().fetchArticles()
-      return saved
     } catch (error) {
-      toast.error('Failed to save: ' + error.message)
+      toast.error(error.message || 'Save failed')
       throw error
     }
   },
@@ -113,20 +82,14 @@ export const useArticles = create((set, get) => ({
       set(state => ({
         articles: state.articles.filter(a => a.id !== id)
       }))
-      toast.success('🗑️ Deleted')
+      toast.success('Article deleted')
     } catch (error) {
-      toast.error('Failed to delete')
+      toast.error(error.message || 'Delete failed')
+      throw error
     }
   },
 
-  loadArticle: async (id) => {
-    try {
-      const article = await api.getArticle(id)
-      set({ currentArticle: article })
-      return article
-    } catch (error) {
-      toast.error('Failed to load article')
-      throw error
-    }
+  setCurrentArticle: (article) => {
+    set({ currentArticle: article })
   }
 }))
