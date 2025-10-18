@@ -163,12 +163,30 @@ export default function Article() {
             )}
           </div>
 
+          {/* ARTICLE CONTENT WITH INTEGRATED FAQs */}
           {article.sections?.map((section, idx) => (
             <div key={idx} className="mb-8">
               <h2 className="text-2xl font-bold mb-4 text-purple-300">{section.heading}</h2>
               {section.paragraphs?.map((para, pIdx) => (
-                <p key={pIdx} className="text-white/80 mb-4 leading-relaxed">{para}</p>
+                <p key={pIdx} className="text-white/80 mb-4 leading-relaxed">
+                  {para}
+                </p>
               ))}
+              
+              {/* Insert FAQs after certain sections if they exist */}
+              {idx === Math.floor(article.sections.length / 2) && article.faqs?.length > 0 && (
+                <div className="my-8 p-6 bg-white/5 rounded-xl border border-white/10">
+                  <h3 className="text-xl font-bold mb-4">Frequently Asked Questions</h3>
+                  <div className="space-y-4">
+                    {article.faqs.map((faq, faqIdx) => (
+                      <div key={faqIdx}>
+                        <h4 className="font-bold text-white mb-2">{faq.q}</h4>
+                        <p className="text-white/70 text-sm">{faq.a}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ))}
 
@@ -176,9 +194,24 @@ export default function Article() {
             <div className="mt-12 pt-8 border-t border-white/10">
               <h2 className="text-2xl font-bold mb-6">🔗 Internal Links</h2>
               <div className="grid gap-3">
-                {article.internal_links.map((link, idx) => (
-                  <InternalLinkItem key={idx} link={link} />
-                ))}
+                {article.internal_links.map((link, idx) => {
+                  const linkUrl = link.url || '#'
+                  const linkTitle = link.suggested_anchor || link.title || 'Link'
+                  return (
+                    
+                      key={idx}
+                      href={linkUrl}
+                      target="_blank"
+                      rel="noopener"
+                      className="glass rounded-lg p-4 hover:bg-white/10 transition-colors block"
+                    >
+                      <div className="font-semibold text-blue-400 mb-1">
+                        {linkTitle}
+                      </div>
+                      <div className="text-xs text-white/50 truncate">{linkUrl}</div>
+                    </a>
+                  )
+                })}
               </div>
             </div>
           )}
@@ -206,20 +239,6 @@ export default function Article() {
             </div>
           )}
 
-          {article.faqs?.length > 0 && (
-            <div className="mt-12 pt-8 border-t border-white/10">
-              <h2 className="text-2xl font-bold mb-6">❓ FAQs</h2>
-              <div className="space-y-6">
-                {article.faqs.map((faq, idx) => (
-                  <div key={idx} className="glass rounded-lg p-4">
-                    <h3 className="text-lg font-bold mb-2">{faq.q}</h3>
-                    <p className="text-white/80">{faq.a}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {article.citations?.length > 0 && (
             <div className="mt-12 pt-8 border-t border-white/10">
               <h2 className="text-2xl font-bold mb-6">📚 Sources</h2>
@@ -227,7 +246,12 @@ export default function Article() {
                 {article.citations.map((citation, idx) => (
                   <div key={idx} className="text-sm">
                     <span className="text-purple-400 font-bold">[{idx + 1}] </span>
-                    <a href={citation.url || '#'} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">
+                    <a 
+                      href={citation.url || '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:underline"
+                    >
                       {citation.title || 'Source'}
                     </a>
                   </div>
@@ -238,18 +262,6 @@ export default function Article() {
         </motion.div>
       </div>
     </div>
-  )
-}
-
-function InternalLinkItem({ link }) {
-  const linkUrl = link.url || '#'
-  const linkTitle = link.suggested_anchor || link.title || 'Link'
-  
-  return (
-    <a href={linkUrl} target="_blank" rel="noopener" className="glass rounded-lg p-4 hover:bg-white/10 transition-colors block">
-      <div className="font-semibold text-blue-400 mb-1">{linkTitle}</div>
-      <div className="text-xs text-white/50 truncate">{linkUrl}</div>
-    </a>
   )
 }
 
@@ -264,24 +276,25 @@ function generateMarkdown(article) {
     md += `![${article.title}](${article.image.image_url})\n\n`
   }
 
-  article.sections?.forEach((section) => {
+  article.sections?.forEach((section, idx) => {
     md += `## ${section.heading}\n\n`
     section.paragraphs?.forEach((para) => {
       md += `${para}\n\n`
     })
+    
+    // Insert FAQs in the middle of content
+    if (idx === Math.floor(article.sections.length / 2) && article.faqs?.length > 0) {
+      md += `\n## Frequently Asked Questions\n\n`
+      article.faqs.forEach((faq) => {
+        md += `### ${faq.q}\n\n${faq.a}\n\n`
+      })
+    }
   })
 
   if (article.internal_links?.length > 0) {
-    md += `\n## Internal Links\n\n`
+    md += `\n## Related Resources\n\n`
     article.internal_links.forEach((link) => {
       md += `- [${link.suggested_anchor || link.title}](${link.url})\n`
-    })
-  }
-
-  if (article.faqs?.length > 0) {
-    md += `\n## FAQs\n\n`
-    article.faqs.forEach((faq) => {
-      md += `**${faq.q}**\n\n${faq.a}\n\n`
     })
   }
 
