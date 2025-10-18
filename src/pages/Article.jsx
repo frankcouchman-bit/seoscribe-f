@@ -18,8 +18,18 @@ export default function Article() {
     if (id && id !== 'new') {
       setLoading(true)
       loadArticle(id).finally(() => setLoading(false))
+    } else if (currentArticle) {
+      // Log article structure for debugging
+      console.log('[ARTICLE] Current article structure:', {
+        hasImage: !!currentArticle.image,
+        hasHeroImage: !!currentArticle.hero_image,
+        hasFeaturedImage: !!currentArticle.featured_image,
+        imageType: typeof currentArticle.image,
+        imageKeys: currentArticle.image ? Object.keys(currentArticle.image) : [],
+        fullArticleKeys: Object.keys(currentArticle)
+      })
     }
-  }, [id, loadArticle])
+  }, [id, loadArticle, currentArticle])
 
   const handleSave = async (article) => {
     await saveArticle(article)
@@ -72,7 +82,6 @@ export default function Article() {
   return (
     <div className="min-h-screen pt-20 pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* BACK BUTTON */}
         <motion.button
           onClick={() => navigate('/dashboard')}
           className="flex items-center gap-2 text-white/80 hover:text-white transition-colors px-4 py-2 rounded-lg hover:bg-white/10 mb-8"
