@@ -23,6 +23,7 @@ export const useAuth = create((set, get) => ({
   checkAuth: async () => {
     const token = localStorage.getItem('authToken')
     if (!token) {
+      // Check demo usage for non-authenticated users
       try {
         const demoUsage = await api.checkDemoUsage()
         set({ 
@@ -32,7 +33,10 @@ export const useAuth = create((set, get) => ({
           usage: {
             today: { generations: 0, tools: {} },
             month: { generations: 0 },
-            demo: { used: demoUsage.used || false, canGenerate: !demoUsage.used }
+            demo: { 
+              used: demoUsage.used || false, 
+              canGenerate: !demoUsage.used 
+            }
           }
         })
       } catch (error) {
@@ -52,7 +56,7 @@ export const useAuth = create((set, get) => ({
     try {
       const profile = await api.getProfile()
       set({ 
-        user: profile.user || profile,
+        user: profile.user || { email: profile.email },
         plan: profile.plan || 'free',
         usage: profile.usage || {
           today: { generations: 0, tools: {} },
@@ -69,11 +73,33 @@ export const useAuth = create((set, get) => ({
     }
   },
 
-  fetchProfile: async () => {
+  refreshUsage: async () => {
+    const token = localStorage.getItem('authToken')
+    
+    if (!token) {
+      // Refresh demo usage
+      try {
+        const demoUsage = await api.checkDemoUsage()
+        set(state => ({
+          usage: {
+            ...state.usage,
+            demo: {
+              used: demoUsage.used || false,
+              canGenerate: !demoUsage.used
+            }
+          }
+        }))
+      } catch (error) {
+        console.error('Failed to refresh demo usage:', error)
+      }
+      return
+    }
+
+    // Refresh authenticated user usage
     try {
       const profile = await api.getProfile()
       set({ 
-        user: profile.user || profile,
+        user: profile.user || { email: profile.email },
         plan: profile.plan || 'free',
         usage: profile.usage || {
           today: { generations: 0, tools: {} },
@@ -81,17 +107,6 @@ export const useAuth = create((set, get) => ({
           demo: { used: false, canGenerate: true }
         }
       })
-      return profile
-    } catch (error) {
-      console.error('Failed to fetch profile:', error)
-      throw error
-    }
-  },
-
-  refreshUsage: async () => {
-    try {
-      const profile = await get().fetchProfile()
-      return profile
     } catch (error) {
       console.error('Failed to refresh usage:', error)
     }
@@ -101,9 +116,11 @@ export const useAuth = create((set, get) => ({
     const { plan, usage, user } = get()
     
     if (!user) {
+      // Demo users
       return usage?.demo?.canGenerate !== false
     }
     
+    // Authenticated users
     const limit = plan === 'pro' ? 15 : 1
     return (usage?.today?.generations || 0) < limit
   },
