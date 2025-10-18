@@ -15,7 +15,6 @@ class APIClient {
 
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`
-    console.log('API Request:', endpoint, options.method || 'GET')
     
     const response = await fetch(url, {
       ...options,
@@ -26,11 +25,8 @@ class APIClient {
       mode: 'cors'
     })
 
-    console.log('API Response:', endpoint, response.status)
-
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Request failed' }))
-      console.error('API Error:', endpoint, error)
       throw new Error(error.error || error.message || 'Request failed')
     }
 
@@ -49,9 +45,8 @@ class APIClient {
   }
 
   handleGoogleAuth() {
-    const redirectUrl = encodeURIComponent(window.location.origin + '/auth/callback')
-    console.log('Redirecting to Google auth with callback:', redirectUrl)
-    window.location.href = `${this.baseURL}/auth/google?redirect=${redirectUrl}`
+    const redirectUrl = window.location.origin + '/auth/callback'
+    window.location.href = `${this.baseURL}/auth/google?redirect=${encodeURIComponent(redirectUrl)}`
   }
 
   async getProfile() {
@@ -128,7 +123,71 @@ class APIClient {
     })
   }
 
-  // Expand
+  // SEO Tools - ADD THESE METHODS
+  async analyzeHeadline(headline) {
+    return this.request('/api/tools/headline-analyzer', {
+      method: 'POST',
+      body: JSON.stringify({ headline })
+    })
+  }
+
+  async checkReadability(text) {
+    return this.request('/api/tools/readability', {
+      method: 'POST',
+      body: JSON.stringify({ text })
+    })
+  }
+
+  async generateSERPPreview(data) {
+    return this.request('/api/tools/serp-preview', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    })
+  }
+
+  async checkPlagiarism(text) {
+    return this.request('/api/tools/plagiarism', {
+      method: 'POST',
+      body: JSON.stringify({ text })
+    })
+  }
+
+  async analyzeCompetitors(keyword, region = 'US') {
+    return this.request('/api/tools/competitor-analysis', {
+      method: 'POST',
+      body: JSON.stringify({ keyword, region })
+    })
+  }
+
+  async clusterKeywords(topic, text) {
+    return this.request('/api/tools/keywords', {
+      method: 'POST',
+      body: JSON.stringify({ topic, text })
+    })
+  }
+
+  async generateBrief(keyword, region = 'US') {
+    return this.request('/api/tools/content-brief', {
+      method: 'POST',
+      body: JSON.stringify({ keyword, region })
+    })
+  }
+
+  async generateMeta(content) {
+    return this.request('/api/tools/meta-description', {
+      method: 'POST',
+      body: JSON.stringify({ content })
+    })
+  }
+
+  async editSection(instruction, section) {
+    return this.request('/api/tools/section', {
+      method: 'POST',
+      body: JSON.stringify({ instruction, section })
+    })
+  }
+
+  // Expand - FIXED TO PRESERVE IMAGE
   async expandArticle(data) {
     return this.request('/api/expand', {
       method: 'POST',
