@@ -37,8 +37,13 @@ export default function ArticleGenerator() {
   const currentGenerations = usage?.today?.generations || 0
   const maxGenerations = plan === 'pro' ? 15 : 1
 
+  // Refresh usage on mount and every 30 seconds
   useEffect(() => {
     refreshUsage()
+    const interval = setInterval(() => {
+      refreshUsage()
+    }, 30000)
+    return () => clearInterval(interval)
   }, [refreshUsage])
 
   const generateHeadlines = () => {
@@ -72,7 +77,7 @@ export default function ArticleGenerator() {
       if (isDemoUser) {
         setShowAuthModal(true)
       } else {
-        toast.error('Daily limit reached!')
+        toast.error('Daily limit reached! Upgrade for more articles.')
       }
       return
     }
@@ -80,37 +85,35 @@ export default function ArticleGenerator() {
     try {
       const finalTopic = selectedHeadline || topic
       
-      // Use template if not default
       if (selectedTemplate !== 'default') {
+        console.log('[GENERATOR] Using template:', selectedTemplate)
+        
         const response = await api.generateFromTemplate({
           template_id: selectedTemplate,
           topic: finalTopic,
           website_url: websiteUrl
         })
         
-        // Update usage manually
-        const { user, usage } = useAuth.getState()
-        const today = new Date().toISOString().split('T')[0]
-        
-        if (!user) {
-          localStorage.setItem('demo_used', 'true')
-          localStorage.setItem('demo_date', today)
-        } else {
-          const current = usage?.today?.generations || 0
-          localStorage.setItem('generation_count', String(current + 1))
-          localStorage.setItem('last_generation_date', today)
-        }
-        
         useArticles.setState({ currentArticle: response })
+        
+        // CRITICAL: Refresh usage after generation
         await refreshUsage()
+        
         navigate('/article/new')
       } else {
-        // Standard generation
+        console.log('[GENERATOR] Using standard generation')
+        
         await generateArticle(finalTopic, websiteUrl)
+        
+        // CRITICAL: Refresh usage after generation (already called in generateArticle, but ensure it)
+        await refreshUsage()
+        
         navigate('/article/new')
       }
     } catch (error) {
       console.error('Generation failed:', error)
+      
+      // Refresh usage even on error (quota might have been used)
       await refreshUsage()
       
       if (isDemoUser && error.message.includes('Demo limit')) {
@@ -336,10 +339,10 @@ export default function ArticleGenerator() {
 
           <motion.button
             type="submit"
-            disabled={generating || !topic.trim() || demoUsed}
+            disabled={generating || !topic.trim() || demoUsed || !canCreate}
             className="w-full py-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-bold text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            whileHover={{ scale: (generating || demoUsed) ? 1 : 1.02 }}
-            whileTap={{ scale: (generating || demoUsed) ? 1 : 0.98 }}
+            whileHover={{ scale: (generating || demoUsed || !canCreate) ? 1 : 1.02 }}
+            whileTap={{ scale: (generating || demoUsed || !canCreate) ? 1 : 0.98 }}
           >
             {generating ? (
               <>
@@ -350,6 +353,11 @@ export default function ArticleGenerator() {
               <>
                 <UserPlus className="w-5 h-5" />
                 <span>Sign Up for Daily Articles</span>
+              </>
+            ) : !canCreate ? (
+              <>
+                <Lock className="w-5 h-5" />
+                <span>Daily Limit Reached</span>
               </>
             ) : (
               <>
