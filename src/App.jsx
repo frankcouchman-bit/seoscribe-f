@@ -13,6 +13,56 @@ import WritingTool from './pages/WritingTool'
 import ArticlesList from './pages/ArticlesList'
 import AuthCallback from './pages/AuthCallback'
 import ProtectedRoute from './components/auth/ProtectedRoute'
+import { toast } from 'react-hot-toast'
+
+function AuthHandler() {
+  const { setAuth } = useAuth()
+
+  useEffect(() => {
+    const handleAuth = async () => {
+      // Check for tokens in hash (OAuth redirect)
+      const hash = window.location.hash
+      if (hash && hash.includes('access_token=')) {
+        console.log('[AUTH HANDLER] Tokens detected in hash')
+        
+        // Parse hash
+        const params = new URLSearchParams(hash.substring(1))
+        const accessToken = params.get('access_token')
+        const refreshToken = params.get('refresh_token')
+        
+        if (accessToken) {
+          console.log('[AUTH HANDLER] Processing authentication...')
+          
+          try {
+            // Store tokens
+            localStorage.setItem('authToken', accessToken)
+            if (refreshToken) {
+              localStorage.setItem('refreshToken', refreshToken)
+            }
+            
+            // Set auth state
+            await setAuth(accessToken, refreshToken)
+            
+            // Clear hash
+            window.history.replaceState(null, '', window.location.pathname)
+            
+            // Show success and redirect
+            toast.success('✅ Signed in successfully!')
+            window.location.href = '/dashboard'
+            
+          } catch (error) {
+            console.error('[AUTH HANDLER] Auth failed:', error)
+            toast.error('Sign in failed. Please try again.')
+          }
+        }
+      }
+    }
+
+    handleAuth()
+  }, [setAuth])
+
+  return null
+}
 
 export default function App() {
   const { checkAuth, loading } = useAuth()
@@ -31,6 +81,7 @@ export default function App() {
 
   return (
     <Router>
+      <AuthHandler />
       <div className="min-h-screen bg-gradient-to-br from-[#0a0e27] via-[#1a1533] to-[#0a0e27] text-white">
         <Header />
         <Routes>
