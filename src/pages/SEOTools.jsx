@@ -18,20 +18,19 @@ import CompetitorAnalysis from '../components/tools/CompetitorAnalysis'
 import KeywordCluster from '../components/tools/KeywordCluster'
 import ContentBrief from '../components/tools/ContentBrief'
 import MetaGenerator from '../components/tools/MetaGenerator'
+import ToolWrapper from '../components/tools/ToolWrapper'
 import { useAuth } from '../hooks/useAuth'
 
 export default function SEOTools() {
   const [activeTool, setActiveTool] = useState('headline')
-  const { plan } = useAuth()
+  const [toolUsed, setToolUsed] = useState(false)
+  const { plan, usage } = useAuth()
 
-  // Set page title
+  const toolsUsed = usage?.today?.tools || 0
+  const maxTools = (!useAuth.getState().user || plan === 'free') ? 1 : 10
+
   useEffect(() => {
     document.title = 'SEO Tools - Free SEO Analysis & Optimization | SEOScribe'
-    
-    const metaDescription = document.querySelector('meta[name="description"]')
-    if (metaDescription) {
-      metaDescription.setAttribute('content', 'Free SEO tools including headline analyzer, readability checker, SERP preview, plagiarism checker, and more. Optimize your content for search engines.')
-    }
   }, [])
 
   const tools = [
@@ -61,13 +60,12 @@ export default function SEOTools() {
           <p className="text-xl text-white/70 max-w-3xl mx-auto">
             Professional SEO tools to optimize your content. 
             <strong className="text-purple-400">
-              {plan === 'pro' ? ' 10 uses per tool/day' : ' 1 use per tool/day'}
+              {' '}Used {toolsUsed}/{maxTools} today
             </strong>
           </p>
         </motion.div>
 
         <div className="grid lg:grid-cols-4 gap-8">
-          {/* SIDEBAR - TOOL SELECTOR */}
           <div className="lg:col-span-1">
             <div className="glass-strong rounded-2xl p-4 sticky top-24">
               <h2 className="font-bold mb-4 px-2">Select Tool</h2>
@@ -75,7 +73,10 @@ export default function SEOTools() {
                 {tools.map((tool) => (
                   <motion.button
                     key={tool.id}
-                    onClick={() => setActiveTool(tool.id)}
+                    onClick={() => {
+                      setActiveTool(tool.id)
+                      setToolUsed(false)
+                    }}
                     className={`w-full px-4 py-3 rounded-lg text-left flex items-center gap-3 transition-all ${
                       activeTool === tool.id
                         ? 'bg-gradient-to-r from-purple-500/30 to-pink-500/30 border-2 border-purple-500'
@@ -93,7 +94,6 @@ export default function SEOTools() {
             </div>
           </div>
 
-          {/* MAIN CONTENT - ACTIVE TOOL */}
           <div className="lg:col-span-3">
             <motion.div
               key={activeTool}
@@ -101,7 +101,13 @@ export default function SEOTools() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.2 }}
             >
-              {ActiveComponent && <ActiveComponent />}
+              {!toolUsed ? (
+                <ToolWrapper onUse={() => setToolUsed(true)}>
+                  {ActiveComponent && <ActiveComponent />}
+                </ToolWrapper>
+              ) : (
+                ActiveComponent && <ActiveComponent />
+              )}
             </motion.div>
           </div>
         </div>
