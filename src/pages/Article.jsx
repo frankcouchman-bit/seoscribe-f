@@ -20,7 +20,7 @@ export default function Article() {
     } else {
       navigate('/dashboard')
     }
-  }, [id])
+  }, [id, currentArticle, navigate, loadArticle])
 
   const article = currentArticle
 
@@ -80,6 +80,18 @@ export default function Article() {
   }
 
   const heroImage = article.image?.image_url || article.image?.url || null
+
+  // Insert FAQs into middle of sections
+  const sectionsWithFaqs = article.sections ? [...article.sections] : []
+  const faqInsertIndex = Math.floor(sectionsWithFaqs.length / 2)
+  
+  if (article.faqs && article.faqs.length > 0 && faqInsertIndex > 0) {
+    sectionsWithFaqs.splice(faqInsertIndex, 0, {
+      heading: 'Frequently Asked Questions',
+      paragraphs: article.faqs.map(faq => `**${faq.q}**\n\n${faq.a}`),
+      isFaqSection: true
+    })
+  }
 
   return (
     <div className="min-h-screen pt-8 pb-16">
@@ -158,65 +170,30 @@ export default function Article() {
             <span>📊 {article.word_count || 0} words</span>
             <span>⏱️ {article.reading_time_minutes || 0} min read</span>
             <span>🔗 {article.citations?.length || 0} sources</span>
-            {article.internal_links && article.internal_links.length > 0 && (
-              <span>🔗 {article.internal_links.length} internal links</span>
-            )}
           </div>
 
-          {/* ARTICLE CONTENT WITH INTEGRATED FAQs */}
-          {article.sections?.map((section, idx) => (
+          {/* Article Content with Integrated FAQs */}
+          {sectionsWithFaqs.map((section, idx) => (
             <div key={idx} className="mb-8">
               <h2 className="text-2xl font-bold mb-4 text-purple-300">{section.heading}</h2>
-              {section.paragraphs?.map((para, pIdx) => (
-                <p key={pIdx} className="text-white/80 mb-4 leading-relaxed">
-                  {para}
-                </p>
-              ))}
-              
-              {/* Insert FAQs after certain sections if they exist */}
-              {idx === Math.floor(article.sections.length / 2) && article.faqs?.length > 0 && (
-                <div className="my-8 p-6 bg-white/5 rounded-xl border border-white/10">
-                  <h3 className="text-xl font-bold mb-4">Frequently Asked Questions</h3>
-                  <div className="space-y-4">
-                    {article.faqs.map((faq, faqIdx) => (
-                      <div key={faqIdx}>
-                        <h4 className="font-bold text-white mb-2">{faq.q}</h4>
-                        <p className="text-white/70 text-sm">{faq.a}</p>
-                      </div>
-                    ))}
-                  </div>
+              {section.isFaqSection ? (
+                <div className="space-y-4 bg-white/5 rounded-xl p-6 border border-white/10">
+                  {article.faqs.map((faq, faqIdx) => (
+                    <div key={faqIdx}>
+                      <h3 className="font-bold text-white mb-2">{faq.q}</h3>
+                      <p className="text-white/70">{faq.a}</p>
+                    </div>
+                  ))}
                 </div>
+              ) : (
+                section.paragraphs?.map((para, pIdx) => (
+                  <p key={pIdx} className="text-white/80 mb-4 leading-relaxed">
+                    {para}
+                  </p>
+                ))
               )}
             </div>
           ))}
-
-          {/* Internal Links Section - FIXED SYNTAX */}
-          {article.internal_links && article.internal_links.length > 0 && (
-            <div className="mt-12 pt-8 border-t border-white/10">
-              <h2 className="text-2xl font-bold mb-6">🔗 Internal Links</h2>
-              <div className="grid gap-3">
-                {article.internal_links.map((link, idx) => {
-                  const linkUrl = link.url || '#'
-                  const linkTitle = link.suggested_anchor || link.title || 'Link'
-                  
-                  return (
-                    
-                      key={idx}
-                      href={linkUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="glass rounded-lg p-4 hover:bg-white/10 transition-colors block"
-                    >
-                      <div className="font-semibold text-blue-400 mb-1">
-                        {linkTitle}
-                      </div>
-                      <div className="text-xs text-white/50 truncate">{linkUrl}</div>
-                    </a>
-                  )
-                })}
-              </div>
-            </div>
-          )}
 
           {/* Social Media Drafts */}
           {article.social_media_posts && Object.keys(article.social_media_posts).length > 0 && (
@@ -226,14 +203,7 @@ export default function Article() {
                 {Object.entries(article.social_media_posts).map(([platform, text]) => (
                   text && (
                     <div key={platform} className="glass rounded-lg p-4">
-                      <div className="font-bold mb-2 capitalize flex items-center gap-2">
-                        <span className="text-lg">
-                          {platform === 'twitter' && '𝕏'}
-                          {platform === 'linkedin' && '💼'}
-                          {platform === 'facebook' && '👥'}
-                        </span>
-                        {platform}
-                      </div>
+                      <div className="font-bold mb-2 capitalize">{platform}</div>
                       <p className="text-sm text-white/70 whitespace-pre-wrap">{text}</p>
                     </div>
                   )
@@ -280,27 +250,22 @@ function generateMarkdown(article) {
     md += `![${article.title}](${article.image.image_url})\n\n`
   }
 
+  const faqInsertIndex = Math.floor((article.sections?.length || 0) / 2)
+  
   article.sections?.forEach((section, idx) => {
     md += `## ${section.heading}\n\n`
     section.paragraphs?.forEach((para) => {
       md += `${para}\n\n`
     })
     
-    // Insert FAQs in the middle of content
-    if (idx === Math.floor(article.sections.length / 2) && article.faqs?.length > 0) {
+    // Insert FAQs in middle
+    if (idx === faqInsertIndex && article.faqs?.length > 0) {
       md += `\n## Frequently Asked Questions\n\n`
       article.faqs.forEach((faq) => {
         md += `### ${faq.q}\n\n${faq.a}\n\n`
       })
     }
   })
-
-  if (article.internal_links?.length > 0) {
-    md += `\n## Related Resources\n\n`
-    article.internal_links.forEach((link) => {
-      md += `- [${link.suggested_anchor || link.title}](${link.url})\n`
-    })
-  }
 
   if (article.citations?.length > 0) {
     md += `\n## Sources\n\n`
