@@ -84,12 +84,17 @@ export const useAuth = create((set, get) => ({
       return profile
     } catch (error) {
       console.error('Failed to fetch profile:', error)
+      throw error
     }
   },
 
   refreshUsage: async () => {
-    const profile = await get().fetchProfile()
-    return profile
+    try {
+      const profile = await get().fetchProfile()
+      return profile
+    } catch (error) {
+      console.error('Failed to refresh usage:', error)
+    }
   },
 
   canGenerate: () => {
