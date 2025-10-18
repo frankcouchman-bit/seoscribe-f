@@ -9,7 +9,7 @@ import SEOTools from './pages/SEOTools'
 import Pricing from './pages/Pricing'
 import AuthCallback from './pages/AuthCallback'
 import Home from './pages/Home'
-import ProtectedRoute from './components/ProtectedRoute.jsx' // <- keep .jsx and exact casing
+import ProtectedRoute from './components/ProtectedRoute.jsx' // keep .jsx and exact casing
 
 function App() {
   const { checkAuth, loading } = useAuth()
