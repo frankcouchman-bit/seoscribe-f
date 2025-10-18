@@ -12,28 +12,26 @@ export const useArticles = create((set, get) => ({
   generateArticle: async (topic, websiteUrl) => {
     set({ generating: true })
     try {
-      // Send BOTH topic and keyword to ensure backend compatibility
       const article = await api.generateArticle({ 
-        topic: topic,           // Backend expects 'topic'
-        keyword: topic,          // Also send as 'keyword' for compatibility
+        topic: topic,
+        keyword: topic,
         website_url: websiteUrl 
       })
       
+      article.expansion_count = 0
+      
       set({ currentArticle: article, generating: false })
       
-      // CRITICAL: Refresh usage immediately after generation
-      const { refreshUsage } = useAuth.getState()
-      await refreshUsage()
+      const { incrementGeneration, user } = useAuth.getState()
+      if (user) {
+        incrementGeneration()
+        console.log('[ARTICLES] Generation count incremented')
+      }
       
       toast.success('✨ Article generated!')
       return article
     } catch (error) {
       set({ generating: false })
-      
-      // Also refresh on error (in case quota was used)
-      const { refreshUsage } = useAuth.getState()
-      await refreshUsage()
-      
       toast.error(error.message || 'Generation failed')
       throw error
     }
@@ -53,6 +51,9 @@ export const useArticles = create((set, get) => ({
   loadArticle: async (id) => {
     try {
       const article = await api.getArticle(id)
+      if (article.expansion_count === undefined) {
+        article.expansion_count = 0
+      }
       set({ currentArticle: article })
       return article
     } catch (error) {
