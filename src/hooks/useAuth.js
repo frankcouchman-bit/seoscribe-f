@@ -24,15 +24,14 @@ export const useAuth = create((set, get) => ({
     const token = localStorage.getItem('authToken')
     
     if (!token) {
-      // Demo user - check localStorage first
+      // Demo user
       const demoUsed = localStorage.getItem('demo_used') === 'true'
-      
       set({ 
         loading: false, 
         user: null,
         plan: 'free',
         usage: {
-          today: { generations: demoUsed ? 1 : 0 },
+          today: { generations: 0 },
           month: { generations: 0 },
           demo: { 
             used: demoUsed, 
@@ -43,7 +42,7 @@ export const useAuth = create((set, get) => ({
       return
     }
 
-    // Authenticated user
+    // Signed in user
     try {
       const profile = await api.getProfile()
       set({ 
@@ -68,7 +67,7 @@ export const useAuth = create((set, get) => ({
     const token = localStorage.getItem('authToken')
     
     if (!token) {
-      // Demo user - check localStorage
+      // Demo user
       const demoUsed = localStorage.getItem('demo_used') === 'true'
       set(state => ({
         usage: {
@@ -82,7 +81,7 @@ export const useAuth = create((set, get) => ({
       return
     }
 
-    // Authenticated user
+    // Signed in user
     try {
       const profile = await api.getProfile()
       set({ 
@@ -103,12 +102,12 @@ export const useAuth = create((set, get) => ({
     const { plan, usage, user } = get()
     
     if (!user) {
-      // Demo: check localStorage
+      // Demo user - check localStorage
       const demoUsed = localStorage.getItem('demo_used') === 'true'
-      return !demoUsed && !usage?.demo?.used
+      return !demoUsed
     }
     
-    // Authenticated: check daily limit
+    // Signed in user
     const limit = plan === 'pro' ? 15 : 1
     const used = usage?.today?.generations || 0
     return used < limit
