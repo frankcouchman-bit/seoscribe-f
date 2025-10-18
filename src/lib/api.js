@@ -117,13 +117,20 @@ class APIClient {
   }
 
   async generateFromTemplate(data) {
+    console.log('[API] Generating from template:', data.template_id)
+    
     return this.request('/api/templates/generate', {
       method: 'POST',
-      body: JSON.stringify(data)
+      body: JSON.stringify({
+        template_id: data.template_id,
+        topic: data.topic,
+        keyword: data.topic,
+        website_url: data.website_url
+      })
     })
   }
 
-  // SEO Tools - ADD THESE METHODS
+  // SEO Tools
   async analyzeHeadline(headline) {
     return this.request('/api/tools/headline-analyzer', {
       method: 'POST',
@@ -187,7 +194,15 @@ class APIClient {
     })
   }
 
-  // Expand - FIXED TO PRESERVE IMAGE
+  // SERP Data with Serper API
+  async getSERPResults(keyword, region = 'US') {
+    return this.request('/api/tools/serp-data', {
+      method: 'POST',
+      body: JSON.stringify({ keyword, region })
+    })
+  }
+
+  // Expand
   async expandArticle(data) {
     return this.request('/api/expand', {
       method: 'POST',
