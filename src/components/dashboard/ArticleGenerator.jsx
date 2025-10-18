@@ -14,30 +14,20 @@ export default function ArticleGenerator() {
   const [selectedHeadline, setSelectedHeadline] = useState('')
   const [showHeadlines, setShowHeadlines] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
-  const [forceUpdate, setForceUpdate] = useState(0)
   
   const { generateArticle, generating } = useArticles()
   const { canGenerate, plan, refreshUsage, user, usage } = useAuth()
   const navigate = useNavigate()
 
-  const canCreate = canGenerate()
   const isDemoUser = !user
-  
-  // Check localStorage for demo
-  const demoUsedStorage = localStorage.getItem('demo_used') === 'true'
-  const demoUsed = isDemoUser && (usage?.demo?.used || demoUsedStorage)
-  
+  const demoUsed = isDemoUser && localStorage.getItem('demo_used') === 'true'
+  const canCreate = canGenerate()
   const currentGenerations = usage?.today?.generations || 0
   const maxGenerations = plan === 'pro' ? 15 : 1
 
   useEffect(() => {
     refreshUsage()
-  }, [])
-
-  // Force re-render after state changes
-  useEffect(() => {
-    setForceUpdate(prev => prev + 1)
-  }, [usage, demoUsed])
+  }, [refreshUsage])
 
   const generateHeadlines = () => {
     if (!topic.trim()) {
@@ -61,8 +51,7 @@ export default function ArticleGenerator() {
     e.preventDefault()
     if (!topic.trim()) return
     
-    // Check demo lockout
-    if (isDemoUser && demoUsed) {
+    if (demoUsed) {
       setShowAuthModal(true)
       return
     }
@@ -79,17 +68,10 @@ export default function ArticleGenerator() {
     try {
       const finalTopic = selectedHeadline || topic
       await generateArticle(finalTopic, websiteUrl)
-      
-      // Force refresh and re-render
-      await refreshUsage()
-      setForceUpdate(prev => prev + 1)
-      
       navigate('/article/new')
     } catch (error) {
       console.error('Generation failed:', error)
-      await refreshUsage()
-      
-      if (isDemoUser && (error.message.includes('Demo limit') || error.message.includes('Quota'))) {
+      if (isDemoUser) {
         setShowAuthModal(true)
       }
     }
@@ -101,7 +83,6 @@ export default function ArticleGenerator() {
         className="glass-strong rounded-2xl p-8"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        key={forceUpdate}
       >
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
@@ -119,8 +100,7 @@ export default function ArticleGenerator() {
             </div>
           </div>
           
-          {/* USAGE COUNTER - FORCE DISPLAY */}
-          <div className="text-right" key={`counter-${currentGenerations}-${demoUsed}`}>
+          <div className="text-right">
             <div className="text-3xl font-black gradient-text">
               {isDemoUser 
                 ? (demoUsed ? '1/1' : '0/1')
@@ -133,9 +113,8 @@ export default function ArticleGenerator() {
           </div>
         </div>
 
-        {/* DEMO USED CTA */}
         <AnimatePresence>
-          {isDemoUser && demoUsed && (
+          {demoUsed && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
@@ -154,7 +133,7 @@ export default function ArticleGenerator() {
                   <ul className="text-white/70 mb-4 space-y-1 text-sm">
                     <li>✅ <strong>1 free article every day</strong></li>
                     <li>✅ Save & edit your articles</li>
-                    <li>✅ Access to all SEO tools (1 use per tool/day)</li>
+                    <li>✅ 1 use per SEO tool/day (10/day for Pro)</li>
                     <li>✅ Export in multiple formats</li>
                   </ul>
                   <motion.button
@@ -171,7 +150,6 @@ export default function ArticleGenerator() {
           )}
         </AnimatePresence>
 
-        {/* DAILY LIMIT REACHED */}
         {!isDemoUser && !canCreate && (
           <div className="mb-6 bg-red-500/20 border border-red-500/30 rounded-lg p-4 flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
@@ -179,8 +157,8 @@ export default function ArticleGenerator() {
               <div className="font-bold text-red-400 mb-1">Daily Limit Reached</div>
               <div className="text-white/70">
                 {plan === 'free'
-                  ? "You've used your 1 free article today. Upgrade to Pro for 15 articles/day + 10 tool uses per tool/day!"
-                  : "You've reached your daily limit. Limits reset tomorrow."}
+                  ? "You've used your 1 free article today. Upgrade to Pro for 15 articles/day + 10 SEO tool uses/day!"
+                  : "You've reached your daily limit of 15 articles. Limit resets tomorrow."}
               </div>
             </div>
           </div>
@@ -203,7 +181,7 @@ export default function ArticleGenerator() {
             />
           </div>
 
-          {topic.trim() && !showHeadlines && !generating && canCreate && !demoUsed && (
+          {topic.trim() && !showHeadlines && !generating && !demoUsed && canCreate && (
             <motion.button
               type="button"
               onClick={generateHeadlines}
