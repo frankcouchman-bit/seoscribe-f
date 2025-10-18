@@ -6,9 +6,10 @@ import RecentArticles from '../components/dashboard/RecentArticles'
 import { useAuth } from '../hooks/useAuth'
 
 export default function Dashboard() {
-  const { refreshUsage, initializeUsage } = useAuth()
+  const { initializeUsage, refreshUsage, user } = useAuth()
 
   useEffect(() => {
+    console.log('[DASHBOARD] Mounted, user:', user?.email)
     initializeUsage()
     refreshUsage()
 
@@ -17,7 +18,7 @@ export default function Dashboard() {
     }, 3000)
 
     return () => clearInterval(interval)
-  }, [refreshUsage, initializeUsage])
+  }, [refreshUsage, initializeUsage, user])
 
   return (
     <div className="min-h-screen pt-20 pb-16">
@@ -28,7 +29,9 @@ export default function Dashboard() {
           className="mb-8"
         >
           <h1 className="text-4xl md:text-5xl font-black mb-2">Dashboard</h1>
-          <p className="text-white/60 text-lg">Generate SEO-optimized content with AI</p>
+          <p className="text-white/60 text-lg">
+            Welcome back, {user?.email || 'User'}! Generate SEO-optimized content with AI
+          </p>
         </motion.div>
 
         <Stats />
