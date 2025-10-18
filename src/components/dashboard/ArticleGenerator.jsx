@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useEffect } from 'react'
-import { Sparkles, AlertCircle, Lock, UserPlus, RefreshCw } from 'lucide-react'
+import { Sparkles, AlertCircle, Lock, UserPlus } from 'lucide-react'
 import { useArticles } from '../../hooks/useArticles'
 import { useAuth } from '../../hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
@@ -25,20 +25,9 @@ export default function ArticleGenerator() {
   const currentGenerations = usage?.today?.generations || 0
   const maxGenerations = plan === 'pro' ? 15 : 1
 
-  // Refresh usage on mount
   useEffect(() => {
     refreshUsage()
   }, [])
-
-  // Poll usage during generation
-  useEffect(() => {
-    if (generating) {
-      const interval = setInterval(() => {
-        refreshUsage()
-      }, 2000)
-      return () => clearInterval(interval)
-    }
-  }, [generating])
 
   const generateHeadlines = () => {
     if (!topic.trim()) {
@@ -62,7 +51,6 @@ export default function ArticleGenerator() {
     e.preventDefault()
     if (!topic.trim()) return
     
-    // Check demo usage
     if (isDemoUser && demoUsed) {
       setShowAuthModal(true)
       return
@@ -80,11 +68,7 @@ export default function ArticleGenerator() {
     try {
       const finalTopic = selectedHeadline || topic
       await generateArticle(finalTopic, websiteUrl)
-      
-      // Force refresh
       await refreshUsage()
-      
-      // Navigate to article
       navigate('/article/new')
     } catch (error) {
       console.error('Generation failed:', error)
@@ -119,35 +103,21 @@ export default function ArticleGenerator() {
             </div>
           </div>
           
-          {/* Usage Counter with Animation */}
-          <div className="flex items-center gap-4">
-            <motion.button
-              onClick={refreshUsage}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-              whileHover={{ rotate: 180 }}
-              transition={{ duration: 0.3 }}
-            >
-              <RefreshCw className="w-4 h-4 text-white/60" />
-            </motion.button>
-            
-            <motion.div 
-              className="text-right"
-              key={`${currentGenerations}-${maxGenerations}`}
-              initial={{ scale: 0.95 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", stiffness: 500 }}
-            >
-              <div className="text-3xl font-black gradient-text">
-                {currentGenerations}/{maxGenerations}
-              </div>
-              <div className="text-sm text-white/60">
-                {isDemoUser ? 'Demo' : 'Today'}
-              </div>
-            </motion.div>
+          {/* FIXED COUNTER - SHOWS REAL NUMBERS */}
+          <div className="text-right">
+            <div className="text-3xl font-black gradient-text">
+              {isDemoUser 
+                ? (demoUsed ? '1/1' : '0/1')
+                : `${currentGenerations}/${maxGenerations}`
+              }
+            </div>
+            <div className="text-sm text-white/60">
+              {isDemoUser ? 'Demo' : 'Today'}
+            </div>
           </div>
         </div>
 
-        {/* Demo Used CTA */}
+        {/* DEMO USED CTA */}
         <AnimatePresence>
           {isDemoUser && demoUsed && (
             <motion.div
@@ -161,15 +131,21 @@ export default function ArticleGenerator() {
                   <UserPlus className="w-6 h-6" />
                 </div>
                 <div className="flex-1">
-                  <div className="font-bold text-xl mb-2">You've Used Your Free Demo! 🎉</div>
+                  <div className="font-bold text-xl mb-2">🎉 You've Used Your Free Demo!</div>
                   <p className="text-white/70 mb-4">
-                    Love what you see? Sign up now and get <strong>1 free article every day</strong> - forever!
+                    Love what you see? <strong>Sign up now</strong> and get:
                   </p>
+                  <ul className="text-white/70 mb-4 space-y-1 text-sm">
+                    <li>✅ <strong>1 free article every day</strong></li>
+                    <li>✅ Save & edit your articles</li>
+                    <li>✅ Access to all SEO tools</li>
+                    <li>✅ Export in multiple formats</li>
+                  </ul>
                   <motion.button
                     onClick={() => setShowAuthModal(true)}
-                    className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-bold shadow-lg"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                    className="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-bold shadow-lg"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                   >
                     Sign Up Free - Get 1 Article Daily →
                   </motion.button>
@@ -179,7 +155,7 @@ export default function ArticleGenerator() {
           )}
         </AnimatePresence>
 
-        {/* Daily Limit Reached */}
+        {/* DAILY LIMIT REACHED */}
         {!isDemoUser && !canCreate && (
           <div className="mb-6 bg-red-500/20 border border-red-500/30 rounded-lg p-4 flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
@@ -211,7 +187,7 @@ export default function ArticleGenerator() {
             />
           </div>
 
-          {/* A/B Headline Generator */}
+          {/* A/B HEADLINE GENERATOR */}
           {topic.trim() && !showHeadlines && !generating && canCreate && !(isDemoUser && demoUsed) && (
             <motion.button
               type="button"
