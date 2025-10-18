@@ -8,17 +8,18 @@ export const useAuth = create((set, get) => ({
   loading: true,
 
   setAuth: async (token, refreshToken) => {
-    console.log('setAuth called with token:', token ? 'present' : 'missing')
-    
-    localStorage.setItem('authToken', token)
-    if (refreshToken) {
-      localStorage.setItem('refreshToken', refreshToken)
-    }
-    
-    // Fetch user profile immediately
     try {
+      console.log('[AUTH] Setting auth with token')
+      
+      // Store tokens
+      localStorage.setItem('authToken', token)
+      if (refreshToken) {
+        localStorage.setItem('refreshToken', refreshToken)
+      }
+      
+      // Fetch profile
       const profile = await api.getProfile()
-      console.log('Profile fetched:', profile)
+      console.log('[AUTH] Profile loaded:', profile.email)
       
       set({ 
         user: profile, 
@@ -29,15 +30,16 @@ export const useAuth = create((set, get) => ({
       
       return profile
     } catch (error) {
-      console.error('Failed to fetch profile after setAuth:', error)
-      set({ loading: false })
+      console.error('[AUTH] setAuth failed:', error)
+      localStorage.removeItem('authToken')
+      localStorage.removeItem('refreshToken')
+      set({ user: null, plan: 'free', loading: false })
       throw error
     }
   },
 
   checkAuth: async () => {
     const token = localStorage.getItem('authToken')
-    console.log('checkAuth called, token:', token ? 'present' : 'missing')
     
     if (!token) {
       set({ user: null, plan: 'free', loading: false })
@@ -46,8 +48,6 @@ export const useAuth = create((set, get) => ({
 
     try {
       const profile = await api.getProfile()
-      console.log('Profile loaded:', profile)
-      
       set({ 
         user: profile, 
         plan: profile.plan || 'free',
@@ -55,7 +55,7 @@ export const useAuth = create((set, get) => ({
         loading: false 
       })
     } catch (error) {
-      console.error('Auth check failed:', error)
+      console.error('[AUTH] checkAuth failed:', error)
       localStorage.removeItem('authToken')
       localStorage.removeItem('refreshToken')
       set({ user: null, plan: 'free', loading: false })
@@ -67,12 +67,12 @@ export const useAuth = create((set, get) => ({
       const profile = await api.getProfile()
       set({ usage: profile.usage })
     } catch (error) {
-      console.error('Usage refresh failed:', error)
+      console.error('[AUTH] refreshUsage failed:', error)
     }
   },
 
   canGenerate: () => {
-    const { user, usage } = get()
+    const { user, usage, plan } = get()
     
     // Demo user check
     if (!user) {
@@ -90,11 +90,10 @@ export const useAuth = create((set, get) => ({
     }
 
     // Logged in user check
-    const plan = get().plan
     if (plan === 'pro') {
       return (usage?.today?.generations || 0) < 15
     } else if (plan === 'enterprise') {
-      return true // unlimited
+      return true
     } else {
       return (usage?.today?.generations || 0) < 1
     }
