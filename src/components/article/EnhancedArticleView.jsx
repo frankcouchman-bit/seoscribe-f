@@ -57,6 +57,7 @@ export default function EnhancedArticleView({ article, onSave, onExpand }) {
             className="px-5 py-2.5 bg-white/10 hover:bg-white/20 rounded-lg font-semibold flex items-center gap-2 border border-white/20 shadow-lg"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            type="button"
           >
             <Copy className="w-4 h-4" />
             Copy
@@ -67,6 +68,7 @@ export default function EnhancedArticleView({ article, onSave, onExpand }) {
             className="px-5 py-2.5 bg-white/10 hover:bg-white/20 rounded-lg font-semibold flex items-center gap-2 border border-white/20 shadow-lg"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            type="button"
           >
             <Download className="w-4 h-4" />
             Export
@@ -78,6 +80,7 @@ export default function EnhancedArticleView({ article, onSave, onExpand }) {
             className="px-6 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-semibold flex items-center gap-2 disabled:opacity-50 shadow-xl border border-purple-400/50"
             whileHover={{ scale: saving ? 1 : 1.05 }}
             whileTap={{ scale: saving ? 1 : 0.95 }}
+            type="button"
           >
             <Save className="w-4 h-4" />
             {saving ? 'Saving...' : 'Save Article'}
@@ -89,6 +92,7 @@ export default function EnhancedArticleView({ article, onSave, onExpand }) {
               className="px-5 py-2.5 bg-green-500/20 hover:bg-green-500/30 rounded-lg font-semibold flex items-center gap-2 border border-green-500/30 shadow-lg"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
+              type="button"
             >
               <Expand className="w-4 h-4" />
               Expand
@@ -300,6 +304,7 @@ export default function EnhancedArticleView({ article, onSave, onExpand }) {
                       toast.success(`${platform} post copied!`)
                     }}
                     className="text-xs px-3 py-1 bg-purple-500/20 hover:bg-purple-500/30 rounded transition-colors"
+                    type="button"
                   >
                     Copy
                   </button>
