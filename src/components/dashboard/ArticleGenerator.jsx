@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useEffect } from 'react'
-import { Sparkles, AlertCircle, Lock, UserPlus, FileText } from 'lucide-react'
+import { Sparkles, AlertCircle, Lock, UserPlus } from 'lucide-react'
 import { useArticles } from '../../hooks/useArticles'
 import { useAuth } from '../../hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
@@ -28,23 +28,23 @@ export default function ArticleGenerator() {
   const [showAuthModal, setShowAuthModal] = useState(false)
   
   const { generateArticle, generating } = useArticles()
-  const { canGenerate, plan, refreshUsage, user, usage } = useAuth()
+  const { canGenerate, plan, incrementGeneration, user, usage } = useAuth()
   const navigate = useNavigate()
 
   const isDemoUser = !user
   const demoUsed = isDemoUser && localStorage.getItem('demo_used') === 'true'
   const canCreate = canGenerate()
   const currentGenerations = usage?.today?.generations || 0
-  const maxGenerations = plan === 'pro' ? 15 : 1
+  const maxGenerations = plan === 'pro' || plan === 'enterprise' ? 15 : 1
 
-  // Refresh usage on mount and every 30 seconds
+  // Auto-refresh usage display every 5 seconds
   useEffect(() => {
-    refreshUsage()
     const interval = setInterval(() => {
-      refreshUsage()
-    }, 30000)
+      const { getLocalUsage } = useAuth.getState()
+      useAuth.setState({ usage: getLocalUsage() })
+    }, 5000)
     return () => clearInterval(interval)
-  }, [refreshUsage])
+  }, [])
 
   const generateHeadlines = () => {
     if (!topic.trim()) {
@@ -68,16 +68,20 @@ export default function ArticleGenerator() {
     e.preventDefault()
     if (!topic.trim()) return
     
-    if (demoUsed) {
-      setShowAuthModal(true)
-      return
+    // Check demo user
+    if (isDemoUser) {
+      if (demoUsed) {
+        setShowAuthModal(true)
+        return
+      }
     }
     
+    // Check quota
     if (!canCreate) {
       if (isDemoUser) {
         setShowAuthModal(true)
       } else {
-        toast.error('Daily limit reached! Upgrade for more articles.')
+        toast.error('Daily limit reached! ' + (plan === 'free' ? 'Upgrade to Pro for 15 articles/day!' : 'Limit resets tomorrow.'))
       }
       return
     }
@@ -94,10 +98,20 @@ export default function ArticleGenerator() {
           website_url: websiteUrl
         })
         
+        // Initialize expansion count
+        response.expansion_count = 0
+        
         useArticles.setState({ currentArticle: response })
         
-        // CRITICAL: Refresh usage after generation
-        await refreshUsage()
+        // Mark demo as used for non-logged users
+        if (isDemoUser) {
+          const today = new Date().toISOString().split('T')[0]
+          localStorage.setItem('demo_used', 'true')
+          localStorage.setItem('demo_date', today)
+        } else {
+          // Increment generation count
+          incrementGeneration()
+        }
         
         navigate('/article/new')
       } else {
@@ -105,20 +119,18 @@ export default function ArticleGenerator() {
         
         await generateArticle(finalTopic, websiteUrl)
         
-        // CRITICAL: Refresh usage after generation (already called in generateArticle, but ensure it)
-        await refreshUsage()
+        // Mark demo as used for non-logged users
+        if (isDemoUser) {
+          const today = new Date().toISOString().split('T')[0]
+          localStorage.setItem('demo_used', 'true')
+          localStorage.setItem('demo_date', today)
+        }
+        // Note: incrementGeneration() is already called in generateArticle
         
         navigate('/article/new')
       }
     } catch (error) {
       console.error('Generation failed:', error)
-      
-      // Refresh usage even on error (quota might have been used)
-      await refreshUsage()
-      
-      if (isDemoUser && error.message.includes('Demo limit')) {
-        setShowAuthModal(true)
-      }
     }
   }
 
@@ -202,7 +214,7 @@ export default function ArticleGenerator() {
               <div className="font-bold text-red-400 mb-1">Daily Limit Reached</div>
               <div className="text-white/70">
                 {plan === 'free'
-                  ? "You've used your 1 free article today. Upgrade to Pro for 15 articles/day + 10 SEO tool uses/day!"
+                  ? "You've used your 1 free article today. Upgrade to Pro for 15 articles/day!"
                   : "You've reached your daily limit of 15 articles. Limit resets tomorrow."}
               </div>
             </div>
@@ -210,7 +222,6 @@ export default function ArticleGenerator() {
         )}
 
         <form onSubmit={handleGenerate} className="space-y-4">
-          {/* TEMPLATE SELECTOR */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-semibold">Content Template</label>
@@ -272,7 +283,7 @@ export default function ArticleGenerator() {
               }}
               placeholder="e.g., Best Project Management Tools 2025"
               className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/50 transition-all disabled:opacity-50"
-              disabled={generating || demoUsed}
+              disabled={generating || demoUsed || (!isDemoUser && !canCreate)}
             />
           </div>
 
@@ -330,7 +341,7 @@ export default function ArticleGenerator() {
               onChange={(e) => setWebsiteUrl(e.target.value)}
               placeholder="https://yourwebsite.com"
               className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/50 transition-all disabled:opacity-50"
-              disabled={generating || demoUsed}
+              disabled={generating || demoUsed || (!isDemoUser && !canCreate)}
             />
             <p className="text-xs text-white/50 mt-2">
               Add your website URL for internal links
@@ -339,10 +350,10 @@ export default function ArticleGenerator() {
 
           <motion.button
             type="submit"
-            disabled={generating || !topic.trim() || demoUsed || !canCreate}
+            disabled={generating || !topic.trim() || demoUsed || (!isDemoUser && !canCreate)}
             className="w-full py-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-bold text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            whileHover={{ scale: (generating || demoUsed || !canCreate) ? 1 : 1.02 }}
-            whileTap={{ scale: (generating || demoUsed || !canCreate) ? 1 : 0.98 }}
+            whileHover={{ scale: (generating || demoUsed || (!isDemoUser && !canCreate)) ? 1 : 1.02 }}
+            whileTap={{ scale: (generating || demoUsed || (!isDemoUser && !canCreate)) ? 1 : 0.98 }}
           >
             {generating ? (
               <>
@@ -354,7 +365,7 @@ export default function ArticleGenerator() {
                 <UserPlus className="w-5 h-5" />
                 <span>Sign Up for Daily Articles</span>
               </>
-            ) : !canCreate ? (
+            ) : (!isDemoUser && !canCreate) ? (
               <>
                 <Lock className="w-5 h-5" />
                 <span>Daily Limit Reached</span>
