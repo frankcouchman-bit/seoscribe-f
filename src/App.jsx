@@ -1,73 +1,92 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { useEffect } from 'react'
-import { HelmetProvider } from 'react-helmet-async'
+import { Toaster } from 'react-hot-toast'
 import { useAuth } from './hooks/useAuth'
-
-import Layout from './components/layout/Layout'
+import Header from './components/layout/Header'
+import Footer from './components/layout/Footer'
 import Home from './pages/Home'
 import Dashboard from './pages/Dashboard'
-import Tools from './pages/Tools'
 import Article from './pages/Article'
-import AIWriter from './pages/AIWriter'
-import ArticleWriter from './pages/ArticleWriter'
+import Pricing from './pages/Pricing'
+import SEOTools from './pages/SEOTools'
 import WritingTool from './pages/WritingTool'
-import Privacy from './pages/Privacy'
-import Terms from './pages/Terms'
-import Success from './pages/Success'
-import Blog from './pages/Blog'
-import NotFound from './pages/NotFound'
+import ArticlesList from './pages/ArticlesList'
+import AuthCallback from './pages/AuthCallback'
+import ProtectedRoute from './components/auth/ProtectedRoute'
 
-function AuthCallbackHandler() {
-  const { setAuth } = useAuth()
-  const location = useLocation()
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const hash = new URLSearchParams(window.location.hash.replace('#', ''))
-    
-    const accessToken = params.get('access_token') || hash.get('access_token')
-    const refreshToken = params.get('refresh_token') || hash.get('refresh_token')
-
-    if (accessToken) {
-      setAuth(accessToken, refreshToken)
-      window.history.replaceState({}, '', window.location.pathname)
-    }
-  }, [location, setAuth])
-
-  return null
-}
-
-function App() {
-  const { checkAuth } = useAuth()
+export default function App() {
+  const { checkAuth, loading } = useAuth()
 
   useEffect(() => {
     checkAuth()
   }, [checkAuth])
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0a0e27] via-[#1a1533] to-[#0a0e27]">
+        <div className="w-16 h-16 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" />
+      </div>
+    )
+  }
+
   return (
-    <HelmetProvider>
-      <BrowserRouter>
-        <AuthCallbackHandler />
+    <Router>
+      <div className="min-h-screen bg-gradient-to-br from-[#0a0e27] via-[#1a1533] to-[#0a0e27] text-white">
+        <Header />
         <Routes>
-          <Route element={<Layout />}>
-            <Route path="/" element={<Home />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/tools" element={<Tools />} />
-            <Route path="/article/:id" element={<Article />} />
-            <Route path="/article/new" element={<Article />} />
-            <Route path="/ai-writer" element={<AIWriter />} />
-            <Route path="/article-writer" element={<ArticleWriter />} />
-            <Route path="/writing-tool" element={<WritingTool />} />
-            <Route path="/privacy" element={<Privacy />} />
-            <Route path="/terms" element={<Terms />} />
-            <Route path="/success" element={<Success />} />
-            <Route path="/blog" element={<Blog />} />
-            <Route path="*" element={<NotFound />} />
-          </Route>
+          <Route path="/" element={<Home />} />
+          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/writing-tool" element={<WritingTool />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          
+          {/* Protected Routes */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/articles" element={
+            <ProtectedRoute>
+              <ArticlesList />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/article/:id" element={
+            <ProtectedRoute>
+              <Article />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/article/new" element={
+            <ProtectedRoute>
+              <Article />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/seo-tools" element={
+            <ProtectedRoute>
+              <SEOTools />
+            </ProtectedRoute>
+          } />
+          
+          {/* Catch all */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </BrowserRouter>
-    </HelmetProvider>
+        <Footer />
+        <Toaster 
+          position="top-right"
+          toastOptions={{
+            duration: 3000,
+            style: {
+              background: 'rgba(255, 255, 255, 0.1)',
+              backdropFilter: 'blur(10px)',
+              color: '#fff',
+              border: '1px solid rgba(255, 255, 255, 0.2)'
+            }
+          }}
+        />
+      </div>
+    </Router>
   )
 }
-
-export default App
