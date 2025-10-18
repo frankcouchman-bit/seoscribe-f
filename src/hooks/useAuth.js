@@ -24,10 +24,8 @@ export const useAuth = create((set, get) => ({
     const token = localStorage.getItem('authToken')
     
     if (!token) {
-      // Demo user - check IP usage
       try {
         const demoData = await api.checkDemoUsage()
-        console.log('🔍 Demo usage check:', demoData)
         set({ 
           loading: false, 
           user: null,
@@ -37,12 +35,11 @@ export const useAuth = create((set, get) => ({
             month: { generations: 0 },
             demo: { 
               used: demoData.used || false, 
-              canGenerate: demoData.canGenerate !== false
+              canGenerate: !demoData.used
             }
           }
         })
       } catch (error) {
-        console.error('Demo check failed:', error)
         set({ 
           loading: false, 
           user: null,
@@ -56,10 +53,8 @@ export const useAuth = create((set, get) => ({
       return
     }
 
-    // Authenticated user
     try {
       const profile = await api.getProfile()
-      console.log('👤 Profile loaded:', profile)
       set({ 
         user: profile.user || { email: profile.email },
         plan: profile.plan || 'free',
@@ -82,16 +77,14 @@ export const useAuth = create((set, get) => ({
     const token = localStorage.getItem('authToken')
     
     if (!token) {
-      // Refresh demo
       try {
         const demoData = await api.checkDemoUsage()
-        console.log('🔄 Demo refreshed:', demoData)
         set(state => ({
           usage: {
             ...state.usage,
             demo: {
               used: demoData.used || false,
-              canGenerate: demoData.canGenerate !== false
+              canGenerate: !demoData.used
             }
           }
         }))
@@ -101,10 +94,8 @@ export const useAuth = create((set, get) => ({
       return
     }
 
-    // Refresh authenticated user
     try {
       const profile = await api.getProfile()
-      console.log('🔄 Profile refreshed:', profile)
       set({ 
         user: profile.user || { email: profile.email },
         plan: profile.plan || 'free',
@@ -123,18 +114,12 @@ export const useAuth = create((set, get) => ({
     const { plan, usage, user } = get()
     
     if (!user) {
-      // Demo users
-      const can = usage?.demo?.canGenerate !== false && !usage?.demo?.used
-      console.log('🎯 Can demo generate:', can, usage?.demo)
-      return can
+      return !usage?.demo?.used
     }
     
-    // Authenticated users
     const limit = plan === 'pro' ? 15 : 1
     const used = usage?.today?.generations || 0
-    const can = used < limit
-    console.log(`🎯 Can generate: ${can} (${used}/${limit})`)
-    return can
+    return used < limit
   },
 
   signOut: () => {
