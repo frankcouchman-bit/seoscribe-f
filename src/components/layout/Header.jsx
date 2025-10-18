@@ -28,33 +28,30 @@ export default function Header() {
             </Link>
 
             <nav className="hidden md:flex items-center gap-6">
-              <Link to="/tools" className="text-white/80 hover:text-white transition-colors font-medium">
-                Tools
-              </Link>
-              <Link to="/ai-writer" className="text-white/80 hover:text-white transition-colors font-medium">
+              {user && (
+                <>
+                  <Link to="/dashboard" className="text-white/80 hover:text-white transition-colors font-medium">
+                    Dashboard
+                  </Link>
+                  <Link to="/articles" className="text-white/80 hover:text-white transition-colors font-medium">
+                    My Articles
+                  </Link>
+                  <Link to="/seo-tools" className="text-white/80 hover:text-white transition-colors font-medium">
+                    SEO Tools
+                  </Link>
+                </>
+              )}
+              <Link to="/writing-tool" className="text-white/80 hover:text-white transition-colors font-medium">
                 AI Writer
               </Link>
-              <Link to="/blog" className="text-white/80 hover:text-white transition-colors font-medium">
-                Blog
-              </Link>
-              <a
-                href="/#pricing"
-                className="text-white/80 hover:text-white transition-colors font-medium"
-              >
+              <Link to="/pricing" className="text-white/80 hover:text-white transition-colors font-medium">
                 Pricing
-              </a>
+              </Link>
             </nav>
 
             <div className="hidden md:flex items-center gap-3">
               {user ? (
                 <>
-                  <button
-                    onClick={() => navigate('/dashboard')}
-                    className="px-4 py-2 text-white/80 hover:text-white transition-colors font-semibold"
-                    type="button"
-                  >
-                    Dashboard
-                  </button>
                   <button
                     onClick={handleSignOut}
                     className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg font-semibold transition-colors flex items-center gap-2"
@@ -104,56 +101,55 @@ export default function Header() {
               className="md:hidden border-t border-white/10 glass-strong"
             >
               <div className="px-4 py-4 space-y-3">
+                {user ? (
+                  <>
+                    <Link
+                      to="/dashboard"
+                      className="block py-2 text-white/80 hover:text-white transition-colors font-medium"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Dashboard
+                    </Link>
+                    <Link
+                      to="/articles"
+                      className="block py-2 text-white/80 hover:text-white transition-colors font-medium"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      My Articles
+                    </Link>
+                    <Link
+                      to="/seo-tools"
+                      className="block py-2 text-white/80 hover:text-white transition-colors font-medium"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      SEO Tools
+                    </Link>
+                  </>
+                ) : null}
                 <Link
-                  to="/tools"
-                  className="block py-2 text-white/80 hover:text-white transition-colors font-medium"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Tools
-                </Link>
-                <Link
-                  to="/ai-writer"
+                  to="/writing-tool"
                   className="block py-2 text-white/80 hover:text-white transition-colors font-medium"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   AI Writer
                 </Link>
                 <Link
-                  to="/blog"
-                  className="block py-2 text-white/80 hover:text-white transition-colors font-medium"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Blog
-                </Link>
-                <a
-                  href="/#pricing"
+                  to="/pricing"
                   className="block py-2 text-white/80 hover:text-white transition-colors font-medium"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Pricing
-                </a>
+                </Link>
 
                 {user ? (
-                  <>
-                    <button
-                      onClick={() => {
-                        navigate('/dashboard')
-                        setMobileMenuOpen(false)
-                      }}
-                      className="w-full text-left py-2 text-white/80 hover:text-white transition-colors font-medium"
-                      type="button"
-                    >
-                      Dashboard
-                    </button>
-                    <button
-                      onClick={handleSignOut}
-                      className="w-full flex items-center gap-2 py-2 px-4 bg-white/10 hover:bg-white/20 rounded-lg font-semibold transition-colors"
-                      type="button"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Sign Out
-                    </button>
-                  </>
+                  <button
+                    onClick={handleSignOut}
+                    className="w-full flex items-center gap-2 py-2 px-4 bg-white/10 hover:bg-white/20 rounded-lg font-semibold transition-colors"
+                    type="button"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sign Out
+                  </button>
                 ) : (
                   <>
                     <button
