@@ -103,7 +103,7 @@ export default function ArticleGenerator() {
             </div>
           </div>
           
-          {/* FIXED COUNTER - SHOWS REAL NUMBERS */}
+          {/* USAGE COUNTER - SHOWS REAL NUMBERS */}
           <div className="text-right">
             <div className="text-3xl font-black gradient-text">
               {isDemoUser 
@@ -187,7 +187,6 @@ export default function ArticleGenerator() {
             />
           </div>
 
-          {/* A/B HEADLINE GENERATOR */}
           {topic.trim() && !showHeadlines && !generating && canCreate && !(isDemoUser && demoUsed) && (
             <motion.button
               type="button"
