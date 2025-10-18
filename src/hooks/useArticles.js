@@ -27,10 +27,6 @@ export const useArticles = create((set, get) => ({
   generateArticle: async (topic, websiteUrl) => {
     set({ generating: true })
     
-    // Get current state BEFORE generating
-    const { user, usage, plan } = useAuth.getState()
-    const isDemoUser = !user
-    
     try {
       const response = await api.generateArticle({
         topic,
@@ -41,54 +37,38 @@ export const useArticles = create((set, get) => ({
         research: true
       })
       
-      // FORCE UPDATE USAGE IMMEDIATELY
-      if (isDemoUser) {
-        // Demo user - mark as used
+      // UPDATE COUNTER AFTER GENERATION
+      const { user, usage } = useAuth.getState()
+      
+      if (!user) {
+        // Demo user
         localStorage.setItem('demo_used', 'true')
-        useAuth.setState({ 
+        useAuth.setState({
           usage: {
             ...usage,
             demo: { used: true, canGenerate: false }
           }
         })
       } else {
-        // Authenticated user - increment counter
-        const currentCount = usage?.today?.generations || 0
-        useAuth.setState({ 
+        // Signed in user
+        const current = usage?.today?.generations || 0
+        useAuth.setState({
           usage: {
             ...usage,
-            today: { ...usage?.today, generations: currentCount + 1 }
+            today: { ...usage?.today, generations: current + 1 }
           }
         })
       }
       
-      set({ 
-        currentArticle: response, 
-        generating: false 
-      })
-      
+      set({ currentArticle: response, generating: false })
       toast.success('✨ Article generated!')
       
-      setTimeout(() => {
-        get().fetchArticles()
-      }, 1000)
+      setTimeout(() => get().fetchArticles(), 1000)
       
       return response
     } catch (error) {
       set({ generating: false })
-      
-      const message = error.message || 'Generation failed'
-      
-      if (message.includes('Quota exceeded') || 
-          message.includes('limit reached') || 
-          message.includes('Daily limit')) {
-        toast.error('Daily limit reached!', { duration: 5000 })
-      } else if (message.includes('Demo limit')) {
-        toast.error('Demo used! Sign up for more.', { duration: 5000 })
-      } else {
-        toast.error(message)
-      }
-      
+      toast.error(error.message || 'Generation failed')
       throw error
     }
   },
