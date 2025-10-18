@@ -45,7 +45,8 @@ export const useAuth = create((set, get) => ({
     const token = localStorage.getItem('authToken')
     
     if (!token) {
-      set({ user: null, plan: 'free', loading: false })
+      get().initializeUsage()
+      set({ user: null, plan: 'free', usage: get().getLocalUsage(), loading: false })
       return
     }
 
@@ -69,54 +70,80 @@ export const useAuth = create((set, get) => ({
       localStorage.removeItem('refreshToken')
       localStorage.removeItem('userPlan')
       localStorage.removeItem('userEmail')
-      set({ user: null, plan: 'free', loading: false })
+      get().initializeUsage()
+      set({ user: null, plan: 'free', usage: get().getLocalUsage(), loading: false })
     }
   },
 
   initializeUsage: () => {
     const today = new Date().toISOString().split('T')[0]
+    const currentMonth = new Date().toISOString().substring(0, 7) // YYYY-MM
     const storedDate = localStorage.getItem('usage_date')
+    const storedMonth = localStorage.getItem('usage_month')
     
+    // Reset daily if new day
     if (storedDate !== today) {
-      console.log('[USAGE] New day detected, resetting quotas')
+      console.log('[USAGE] New day detected, resetting daily quotas')
       localStorage.setItem('usage_date', today)
       localStorage.setItem('generations_today', '0')
       localStorage.setItem('tools_used_today', '0')
+    }
+    
+    // Reset monthly if new month
+    if (storedMonth !== currentMonth) {
+      console.log('[USAGE] New month detected, resetting monthly count')
+      localStorage.setItem('usage_month', currentMonth)
+      localStorage.setItem('monthly_generations', '0')
     }
   },
 
   getLocalUsage: () => {
     const today = new Date().toISOString().split('T')[0]
+    const currentMonth = new Date().toISOString().substring(0, 7)
     const storedDate = localStorage.getItem('usage_date')
+    const storedMonth = localStorage.getItem('usage_month')
     
+    // Auto-reset if different day
     if (storedDate !== today) {
       localStorage.setItem('usage_date', today)
       localStorage.setItem('generations_today', '0')
       localStorage.setItem('tools_used_today', '0')
-      return { today: { generations: 0, tools: 0 }, thisMonth: { total: 0 } }
     }
     
-    const monthlyTotal = parseInt(localStorage.getItem('monthly_generations') || '0')
+    // Auto-reset if different month
+    if (storedMonth !== currentMonth) {
+      localStorage.setItem('usage_month', currentMonth)
+      localStorage.setItem('monthly_generations', '0')
+    }
+    
+    const dailyGenerations = parseInt(localStorage.getItem('generations_today') || '0')
+    const monthlyGenerations = parseInt(localStorage.getItem('monthly_generations') || '0')
+    const toolsUsed = parseInt(localStorage.getItem('tools_used_today') || '0')
     
     return {
       today: {
-        generations: parseInt(localStorage.getItem('generations_today') || '0'),
-        tools: parseInt(localStorage.getItem('tools_used_today') || '0')
+        generations: dailyGenerations,
+        tools: toolsUsed
       },
       thisMonth: {
-        total: monthlyTotal
+        total: monthlyGenerations
       }
     }
   },
 
   incrementGeneration: () => {
-    const current = parseInt(localStorage.getItem('generations_today') || '0')
-    const monthly = parseInt(localStorage.getItem('monthly_generations') || '0')
-    const newCount = current + 1
-    localStorage.setItem('generations_today', String(newCount))
-    localStorage.setItem('monthly_generations', String(monthly + 1))
-    console.log('[USAGE] Generation count:', newCount)
+    const currentDaily = parseInt(localStorage.getItem('generations_today') || '0')
+    const currentMonthly = parseInt(localStorage.getItem('monthly_generations') || '0')
     
+    const newDaily = currentDaily + 1
+    const newMonthly = currentMonthly + 1
+    
+    localStorage.setItem('generations_today', String(newDaily))
+    localStorage.setItem('monthly_generations', String(newMonthly))
+    
+    console.log('[USAGE] Incremented - Daily:', newDaily, 'Monthly:', newMonthly)
+    
+    // Force immediate update
     set({ usage: get().getLocalUsage() })
   },
 
@@ -166,12 +193,10 @@ export const useAuth = create((set, get) => ({
         const now = new Date().getTime()
         const thirtyDays = 30 * 24 * 60 * 60 * 1000
         
-        // If less than 30 days have passed, demo is still locked
         if (now - demoDateTime < thirtyDays) {
           console.log('[QUOTA] Demo locked for', Math.ceil((thirtyDays - (now - demoDateTime)) / (24 * 60 * 60 * 1000)), 'more days')
           return false
         } else {
-          // 30 days passed, reset demo
           localStorage.removeItem('demo_used')
           localStorage.removeItem('demo_date')
           return true
@@ -199,12 +224,10 @@ export const useAuth = create((set, get) => ({
       currentTools: usage.today.tools
     })
     
-    // Demo/free user check
     if (!user || plan === 'free') {
       return usage.today.tools < 1
     }
 
-    // Pro/Enterprise check
     if (plan === 'pro' || plan === 'enterprise') {
       return usage.today.tools < 10
     }
@@ -235,8 +258,10 @@ export const useAuth = create((set, get) => ({
     localStorage.removeItem('userPlan')
     localStorage.removeItem('userEmail')
     localStorage.removeItem('usage_date')
+    localStorage.removeItem('usage_month')
     localStorage.removeItem('generations_today')
     localStorage.removeItem('tools_used_today')
+    localStorage.removeItem('monthly_generations')
     set({ user: null, plan: 'free', usage: null })
     window.location.href = '/'
   }
