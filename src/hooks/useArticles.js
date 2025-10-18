@@ -36,9 +36,8 @@ export const useArticles = create((set, get) => ({
         research: true
       })
       
-      // CRITICAL: Extract usage from response and update auth state
+      // UPDATE USAGE FROM RESPONSE
       if (response.usage) {
-        console.log('📊 Updating usage from response:', response.usage)
         useAuth.setState({ usage: response.usage })
       }
       
@@ -47,12 +46,11 @@ export const useArticles = create((set, get) => ({
         generating: false 
       })
       
-      toast.success('✨ Article generated!')
+      toast.success('✨ Article generated successfully!')
       
-      // Refresh articles list
       setTimeout(() => {
         get().fetchArticles()
-      }, 500)
+      }, 1000)
       
       return response
     } catch (error) {
@@ -63,9 +61,9 @@ export const useArticles = create((set, get) => ({
       if (message.includes('Quota exceeded') || 
           message.includes('limit reached') || 
           message.includes('Daily limit')) {
-        toast.error('❌ Daily limit reached!', { duration: 5000 })
+        toast.error('Daily limit reached!', { duration: 5000 })
       } else if (message.includes('Demo limit')) {
-        toast.error('❌ Demo used! Sign up for daily articles.', { duration: 5000 })
+        toast.error('Demo used! Sign up for more.', { duration: 5000 })
       } else {
         toast.error(message)
       }
@@ -86,7 +84,7 @@ export const useArticles = create((set, get) => ({
       get().fetchArticles()
       return saved
     } catch (error) {
-      toast.error('Failed to save: ' + error.message)
+      toast.error('Failed to save')
       throw error
     }
   },
