@@ -9,7 +9,7 @@ import SEOTools from './pages/SEOTools'
 import Pricing from './pages/Pricing'
 import AuthCallback from './pages/AuthCallback'
 import Home from './pages/Home'
-import ProtectedRoute from './components/ProtectedRoute.jsx'
+import ProtectedRoute from './components/ProtectedRoute' // <- keep path/casing exact
 
 function App() {
   const { checkAuth, loading } = useAuth()
@@ -32,29 +32,36 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          } />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/article/:id" element={<Article />} />
-          <Route path="/library" element={
-            <ProtectedRoute>
-              <Library />
-            </ProtectedRoute>
-          } />
+          <Route
+            path="/library"
+            element={
+              <ProtectedRoute>
+                <Library />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/seo-tools" element={<SEOTools />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-        <Toaster 
+
+        <Toaster
           position="top-right"
           toastOptions={{
             style: {
               background: '#1e293b',
               color: '#fff',
-              border: '1px solid rgba(255,255,255,0.1)'
-            }
+              border: '1px solid rgba(255,255,255,0.1)',
+            },
           }}
         />
       </div>
