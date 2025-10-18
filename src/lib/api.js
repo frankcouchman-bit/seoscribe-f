@@ -15,6 +15,8 @@ class APIClient {
 
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`
+    console.log('API Request:', endpoint, options.method || 'GET')
+    
     const response = await fetch(url, {
       ...options,
       headers: {
@@ -24,8 +26,11 @@ class APIClient {
       mode: 'cors'
     })
 
+    console.log('API Response:', endpoint, response.status)
+
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Request failed' }))
+      console.error('API Error:', endpoint, error)
       throw new Error(error.error || error.message || 'Request failed')
     }
 
@@ -36,12 +41,17 @@ class APIClient {
   async requestMagicLink(email) {
     return this.request('/auth/magic-link', {
       method: 'POST',
-      body: JSON.stringify({ email, redirect: window.location.origin + '/dashboard' })
+      body: JSON.stringify({ 
+        email, 
+        redirect: window.location.origin + '/auth/callback' 
+      })
     })
   }
 
   handleGoogleAuth() {
-    window.location.href = `${this.baseURL}/auth/google?redirect=${encodeURIComponent(window.location.origin + '/dashboard')}`
+    const redirectUrl = encodeURIComponent(window.location.origin + '/auth/callback')
+    console.log('Redirecting to Google auth with callback:', redirectUrl)
+    window.location.href = `${this.baseURL}/auth/google?redirect=${redirectUrl}`
   }
 
   async getProfile() {
@@ -53,10 +63,6 @@ class APIClient {
       method: 'PATCH',
       body: JSON.stringify(data)
     })
-  }
-
-  async checkDemoUsage() {
-    return this.request('/api/demo-usage')
   }
 
   // Stripe
@@ -119,78 +125,6 @@ class APIClient {
     return this.request('/api/templates/generate', {
       method: 'POST',
       body: JSON.stringify(data)
-    })
-  }
-
-  // SEO Tools
-  async analyzeHeadline(headline) {
-    return this.request('/api/tools/headline-analyzer', {
-      method: 'POST',
-      body: JSON.stringify({ headline })
-    })
-  }
-
-  async checkReadability(text) {
-    return this.request('/api/tools/readability', {
-      method: 'POST',
-      body: JSON.stringify({ text })
-    })
-  }
-
-  async generateSERPPreview(data) {
-    return this.request('/api/tools/serp-preview', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    })
-  }
-
-  async checkPlagiarism(text) {
-    return this.request('/api/tools/plagiarism', {
-      method: 'POST',
-      body: JSON.stringify({ text })
-    })
-  }
-
-  async analyzeCompetitors(keyword, region) {
-    return this.request('/api/tools/competitor-analysis', {
-      method: 'POST',
-      body: JSON.stringify({ keyword, region })
-    })
-  }
-
-  async clusterKeywords(topic, text) {
-    return this.request('/api/tools/keywords', {
-      method: 'POST',
-      body: JSON.stringify({ topic, text })
-    })
-  }
-
-  async generateBrief(keyword, region) {
-    return this.request('/api/tools/content-brief', {
-      method: 'POST',
-      body: JSON.stringify({ keyword, region })
-    })
-  }
-
-  async generateMeta(content) {
-    return this.request('/api/tools/meta-description', {
-      method: 'POST',
-      body: JSON.stringify({ content })
-    })
-  }
-
-  async editSection(instruction, section) {
-    return this.request('/api/tools/section', {
-      method: 'POST',
-      body: JSON.stringify({ instruction, section })
-    })
-  }
-
-  // AI Assistant
-  async getAIAssistance(prompt, context, keyword) {
-    return this.request('/api/ai-assistant', {
-      method: 'POST',
-      body: JSON.stringify({ prompt, context, keyword })
     })
   }
 
