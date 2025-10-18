@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { useState } from 'react'
-import { Sparkles, AlertCircle, Lock } from 'lucide-react'
+import { Sparkles, AlertCircle, Lock, Download, Copy, Save } from 'lucide-react'
 import { useArticles } from '../../hooks/useArticles'
 import { useAuth } from '../../hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
@@ -9,12 +9,33 @@ import { toast } from 'react-hot-toast'
 export default function ArticleGenerator() {
   const [topic, setTopic] = useState('')
   const [websiteUrl, setWebsiteUrl] = useState('')
-  const { generateArticle, generating } = useArticles()
-  const { canGenerate, plan, refreshUsage, user } = useAuth()
+  const [generatedHeadlines, setGeneratedHeadlines] = useState([])
+  const [selectedHeadline, setSelectedHeadline] = useState(null)
+  const [showHeadlines, setShowHeadlines] = useState(false)
+  const { generateArticle, generating, saveArticle } = useArticles()
+  const { canGenerate, plan, refreshUsage, user, usage } = useAuth()
   const navigate = useNavigate()
 
   const canCreate = canGenerate()
   const isDemoUser = !user
+
+  const handleGenerateHeadlines = async () => {
+    if (!topic.trim()) {
+      toast.error('Please enter a topic first')
+      return
+    }
+
+    const headlines = [
+      `${topic}: The Complete Guide for 2025`,
+      `Everything You Need to Know About ${topic}`,
+      `${topic}: Ultimate Beginner's Guide`,
+      `The Best Way to ${topic} in 2025`,
+      `${topic}: Expert Tips and Strategies`
+    ]
+    
+    setGeneratedHeadlines(headlines)
+    setShowHeadlines(true)
+  }
 
   const handleGenerate = async (e) => {
     e.preventDefault()
@@ -30,7 +51,8 @@ export default function ArticleGenerator() {
     }
     
     try {
-      await generateArticle(topic, websiteUrl)
+      const finalTopic = selectedHeadline || topic
+      await generateArticle(finalTopic, websiteUrl)
       await refreshUsage()
       navigate('/article/new')
     } catch (error) {
@@ -39,24 +61,37 @@ export default function ArticleGenerator() {
     }
   }
 
+  const currentGenerations = usage?.today?.generations || 0
+  const maxGenerations = plan === 'pro' ? 15 : 1
+
   return (
     <motion.div
       className="glass-strong rounded-2xl p-8"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
     >
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
-          {canCreate ? <Sparkles className="w-6 h-6" /> : <Lock className="w-6 h-6" />}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+            {canCreate ? <Sparkles className="w-6 h-6" /> : <Lock className="w-6 h-6" />}
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold">Generate Article</h2>
+            <p className="text-white/60">
+              {isDemoUser 
+                ? 'Try it free - no account needed'
+                : 'Create SEO-optimized content in seconds'
+              }
+            </p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-2xl font-bold">Generate Article</h2>
-          <p className="text-white/60">
-            {isDemoUser 
-              ? 'Try it free - no account needed'
-              : 'Create SEO-optimized content in seconds'
-            }
-          </p>
+        
+        {/* Usage Counter */}
+        <div className="text-right">
+          <div className="text-3xl font-black gradient-text">
+            {currentGenerations}/{maxGenerations}
+          </div>
+          <div className="text-sm text-white/60">Articles Today</div>
         </div>
       </div>
 
@@ -90,6 +125,45 @@ export default function ArticleGenerator() {
             disabled={generating || !canCreate}
           />
         </div>
+
+        {/* A/B Headline Generator */}
+        {topic.trim() && !showHeadlines && (
+          <motion.button
+            type="button"
+            onClick={handleGenerateHeadlines}
+            className="w-full py-2 bg-white/10 hover:bg-white/20 rounded-lg font-semibold text-sm transition-colors"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+            ✨ Generate A/B Tested Headlines
+          </motion.button>
+        )}
+
+        {showHeadlines && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            className="space-y-2"
+          >
+            <label className="block text-sm font-semibold mb-2">Choose Your Headline</label>
+            {generatedHeadlines.map((headline, i) => (
+              <motion.button
+                key={i}
+                type="button"
+                onClick={() => setSelectedHeadline(headline)}
+                className={`w-full text-left px-4 py-3 rounded-lg transition-all ${
+                  selectedHeadline === headline
+                    ? 'bg-purple-500/30 border-2 border-purple-500'
+                    : 'bg-white/10 border border-white/20 hover:bg-white/15'
+                }`}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                {headline}
+              </motion.button>
+            ))}
+          </motion.div>
+        )}
 
         <div>
           <label className="block text-sm font-semibold mb-2">
