@@ -1,44 +1,461 @@
 import { motion } from 'framer-motion'
-import { Sparkles } from 'lucide-react'
+import { Helmet } from 'react-helmet'
+import { Link } from 'react-router-dom'
+import { 
+  Sparkles, 
+  Zap, 
+  Target, 
+  TrendingUp, 
+  CheckCircle, 
+  ArrowRight,
+  Brain,
+  Clock,
+  Award,
+  Users,
+  Star,
+  FileText,
+  Search,
+  BarChart
+} from 'lucide-react'
+import { useState } from 'react'
 
 export default function WritingTool() {
-  return (
-    <div className="min-h-screen pt-20 pb-16">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          className="text-center mb-12"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/20 rounded-full mb-6">
-            <Sparkles className="w-4 h-4 text-purple-400" />
-            <span className="text-sm font-semibold text-purple-300">AI Writing Tool</span>
-          </div>
-          
-          <h1 className="text-5xl font-black mb-4">
-            AI Writing Assistant
-          </h1>
-          
-          <p className="text-xl text-white/70">
-            Coming soon - Professional AI writing tools
-          </p>
-        </motion.div>
+  const [openFaq, setOpenFaq] = useState(null)
 
-        <motion.div
-          className="glass-strong rounded-2xl p-8"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">🚧</div>
-            <h2 className="text-2xl font-bold mb-2">Under Construction</h2>
-            <p className="text-white/60">
-              This feature is coming soon. Check back later!
+  const features = [
+    {
+      icon: Brain,
+      title: "AI-Powered Content Generation",
+      description: "Advanced AI creates human-quality articles, blog posts, and web content in seconds"
+    },
+    {
+      icon: Search,
+      title: "SEO Optimization Built-In",
+      description: "Automatic keyword integration, meta descriptions, and search engine optimization"
+    },
+    {
+      icon: Clock,
+      title: "Save 10+ Hours Per Week",
+      description: "Generate 3000+ word articles in minutes instead of hours of manual writing"
+    },
+    {
+      icon: Target,
+      title: "Multiple Content Types",
+      description: "Blog posts, articles, product reviews, how-to guides, listicles, and more"
+    },
+    {
+      icon: BarChart,
+      title: "Real-Time SEO Scoring",
+      description: "Get instant SEO scores and optimization suggestions as you write"
+    },
+    {
+      icon: Award,
+      title: "Plagiarism-Free Content",
+      description: "100% original, unique content that passes all plagiarism checks"
+    }
+  ]
+
+  const benefits = [
+    "Generate 3000-4000 word articles in under 5 minutes",
+    "SEO-optimized content that ranks on Google's first page",
+    "Save $2000+/month on content writing costs",
+    "Built-in keyword research and competitor analysis",
+    "Automatic meta tags, descriptions, and alt text",
+    "Multi-language support for global audiences",
+    "Export to WordPress, Medium, and other platforms",
+    "24/7 AI writing assistant - never face writer's block"
+  ]
+
+  const useCases = [
+    {
+      icon: FileText,
+      title: "Bloggers & Content Creators",
+      description: "Create consistent, high-quality blog content that drives organic traffic"
+    },
+    {
+      icon: TrendingUp,
+      title: "Digital Marketing Agencies",
+      description: "Scale content production for multiple clients without hiring more writers"
+    },
+    {
+      icon: Users,
+      title: "E-commerce Businesses",
+      description: "Generate product descriptions, buying guides, and SEO landing pages"
+    },
+    {
+      icon: Award,
+      title: "SEO Professionals",
+      description: "Create keyword-optimized content that ranks faster and higher"
+    }
+  ]
+
+  const faqs = [
+    {
+      q: "What is an AI writing tool?",
+      a: "An AI writing tool is software that uses artificial intelligence and natural language processing to automatically generate written content. SEOScribe's AI writing tool creates SEO-optimized articles, blog posts, and web content that reads naturally and ranks well in search engines."
+    },
+    {
+      q: "How does the AI writing tool work?",
+      a: "Our AI writing tool analyzes top-ranking content for your topic, identifies key SEO patterns, and generates comprehensive articles with proper structure, keywords, and optimization. Simply enter your topic, and our AI handles research, writing, and SEO optimization automatically."
+    },
+    {
+      q: "Is AI-generated content good for SEO?",
+      a: "Yes! SEOScribe's AI writing tool creates content specifically optimized for search engines. Our tool includes automatic keyword integration, proper heading structure, meta descriptions, and internal linking - all critical SEO factors that help content rank on Google's first page."
+    },
+    {
+      q: "Can I try the AI writing tool for free?",
+      a: "Absolutely! SEOScribe offers a free demo that lets you generate one full article. Free accounts get 1 article per day, while Pro accounts get 15 articles per day plus advanced SEO tools."
+    },
+    {
+      q: "How long does it take to generate an article?",
+      a: "The AI writing tool generates complete 3000-4000 word articles in 3-5 minutes. This includes research, writing, SEO optimization, and formatting - work that would normally take 3-4 hours manually."
+    },
+    {
+      q: "What types of content can the AI writing tool create?",
+      a: "Our AI writing tool can generate blog posts, articles, product reviews, how-to guides, listicles, case studies, comparison posts, ultimate guides, and more. It's versatile enough for any content marketing need."
+    },
+    {
+      q: "Is the content plagiarism-free?",
+      a: "Yes! All content generated by SEOScribe is 100% original and unique. Our AI creates new content from scratch rather than copying existing material, ensuring it passes all plagiarism checks."
+    },
+    {
+      q: "How much does the AI writing tool cost?",
+      a: "SEOScribe offers a free plan with 1 article per day. Pro plans start at $29/month for 15 articles per day, unlimited SEO tools, and priority support - significantly cheaper than hiring human writers at $50-200 per article."
+    }
+  ]
+
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "SEOScribe AI Writing Tool",
+    "applicationCategory": "BusinessApplication",
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8",
+      "ratingCount": "1247"
+    },
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "description": "AI-powered writing tool that generates SEO-optimized articles, blog posts, and web content in minutes. Free plan includes 1 article per day."
+  }
+
+  const faqStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faqs.map(faq => ({
+      "@type": "Question",
+      "name": faq.q,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": faq.a
+      }
+    }))
+  }
+
+  return (
+    <>
+      <Helmet>
+        <title>AI Writing Tool - Free AI Content Generator | SEOScribe</title>
+        <meta name="description" content="Generate SEO-optimized articles in minutes with our AI writing tool. Free AI content generator creates 3000+ word blog posts, articles & web content. Try free today!" />
+        <meta name="keywords" content="ai writing tool, ai content generator, ai article writer, ai blog writer, content writing ai, free ai writing tool, seo content generator, automated content creation" />
+        
+        {/* Open Graph */}
+        <meta property="og:title" content="AI Writing Tool - Free AI Content Generator | SEOScribe" />
+        <meta property="og:description" content="Generate SEO-optimized articles in minutes with our AI writing tool. Free plan available - create 1 article per day!" />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://seoscribe.pro/writing-tool" />
+        <meta property="og:image" content="https://seoscribe.pro/og-writing-tool.jpg" />
+        
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="AI Writing Tool - Free AI Content Generator" />
+        <meta name="twitter:description" content="Generate SEO-optimized articles in minutes. Try our free AI writing tool today!" />
+        
+        {/* Canonical */}
+        <link rel="canonical" href="https://seoscribe.pro/writing-tool" />
+        
+        {/* Structured Data */}
+        <script type="application/ld+json">
+          {JSON.stringify(structuredData)}
+        </script>
+        <script type="application/ld+json">
+          {JSON.stringify(faqStructuredData)}
+        </script>
+      </Helmet>
+
+      <div className="min-h-screen pt-20 pb-16">
+        {/* HERO SECTION */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <motion.div
+            className="text-center max-w-4xl mx-auto"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/20 rounded-full mb-6">
+              <Sparkles className="w-4 h-4 text-purple-400" />
+              <span className="text-sm font-semibold text-purple-300">#1 AI Writing Tool for SEO</span>
+            </div>
+            
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-black mb-6 leading-tight">
+              AI Writing Tool That <span className="gradient-text">Ranks on Google</span>
+            </h1>
+            
+            <p className="text-xl md:text-2xl text-white/70 mb-8 leading-relaxed">
+              Generate SEO-optimized articles, blog posts, and web content in minutes. 
+              Our AI writing tool creates <strong>3000+ word articles</strong> that rank on Google's first page.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
+              <Link to="/dashboard">
+                <motion.button
+                  className="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-bold text-lg shadow-xl flex items-center gap-2"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  Try Free AI Writing Tool
+                  <ArrowRight className="w-5 h-5" />
+                </motion.button>
+              </Link>
+              
+              <Link to="/pricing">
+                <motion.button
+                  className="px-8 py-4 bg-white/10 hover:bg-white/20 rounded-lg font-bold text-lg border border-white/20 backdrop-blur-sm"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  View Pricing
+                </motion.button>
+              </Link>
+            </div>
+
+            <div className="flex items-center justify-center gap-8 text-sm text-white/60">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-green-400" />
+                <span>1 Free Article Daily</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-green-400" />
+                <span>No Credit Card Required</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-green-400" />
+                <span>3000+ Words Per Article</span>
+              </div>
+            </div>
+          </motion.div>
+        </section>
+
+        {/* FEATURES SECTION */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-black mb-4">
+              Why Choose Our AI Writing Tool?
+            </h2>
+            <p className="text-xl text-white/70 max-w-3xl mx-auto">
+              The most powerful AI content generator with built-in SEO optimization
             </p>
           </div>
-        </motion.div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {features.map((feature, i) => (
+              <motion.div
+                key={i}
+                className="glass-strong rounded-2xl p-8"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1 }}
+                whileHover={{ scale: 1.02 }}
+              >
+                <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mb-4">
+                  <feature.icon className="w-7 h-7" />
+                </div>
+                <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
+                <p className="text-white/70 leading-relaxed">{feature.description}</p>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+
+        {/* BENEFITS SECTION */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <div className="glass-strong rounded-3xl p-12">
+            <h2 className="text-4xl font-black mb-8 text-center">
+              What You Get With Our AI Writing Tool
+            </h2>
+            <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+              {benefits.map((benefit, i) => (
+                <motion.div
+                  key={i}
+                  className="flex items-start gap-3"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                >
+                  <CheckCircle className="w-6 h-6 text-green-400 flex-shrink-0 mt-1" />
+                  <span className="text-lg">{benefit}</span>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* USE CASES SECTION */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-black mb-4">
+              Perfect For Every Content Creator
+            </h2>
+            <p className="text-xl text-white/70">
+              From bloggers to agencies - our AI writing tool scales with your needs
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {useCases.map((useCase, i) => (
+              <motion.div
+                key={i}
+                className="glass-strong rounded-2xl p-8 text-center"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1 }}
+                whileHover={{ scale: 1.05 }}
+              >
+                <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mb-4 mx-auto">
+                  <useCase.icon className="w-8 h-8" />
+                </div>
+                <h3 className="text-xl font-bold mb-3">{useCase.title}</h3>
+                <p className="text-white/70">{useCase.description}</p>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+
+        {/* HOW IT WORKS */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-black mb-4">
+              How Our AI Writing Tool Works
+            </h2>
+            <p className="text-xl text-white/70">
+              Generate SEO-optimized content in 3 simple steps
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {[
+              {
+                step: "1",
+                title: "Enter Your Topic",
+                description: "Tell our AI writing tool what you want to write about - a keyword, title, or topic idea"
+              },
+              {
+                step: "2",
+                title: "AI Generates Content",
+                description: "Our AI researches top-ranking content and generates a comprehensive, SEO-optimized article"
+              },
+              {
+                step: "3",
+                title: "Edit & Publish",
+                description: "Review, customize, and export your content to WordPress, Medium, or download as PDF/DOCX"
+              }
+            ].map((item, i) => (
+              <motion.div
+                key={i}
+                className="glass-strong rounded-2xl p-8 text-center relative"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.2 }}
+              >
+                <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-3xl font-black mb-6 mx-auto">
+                  {item.step}
+                </div>
+                <h3 className="text-2xl font-bold mb-4">{item.title}</h3>
+                <p className="text-white/70 text-lg leading-relaxed">{item.description}</p>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+
+        {/* FAQ SECTION */}
+        <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-black mb-4">
+              Frequently Asked Questions
+            </h2>
+            <p className="text-xl text-white/70">
+              Everything you need to know about our AI writing tool
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {faqs.map((faq, i) => (
+              <motion.div
+                key={i}
+                className="glass-strong rounded-xl overflow-hidden"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+              >
+                <button
+                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                  className="w-full px-6 py-5 text-left flex items-center justify-between hover:bg-white/5 transition-colors"
+                >
+                  <h3 className="text-lg font-bold pr-4">{faq.q}</h3>
+                  <motion.div
+                    animate={{ rotate: openFaq === i ? 180 : 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <ArrowRight className="w-5 h-5 transform rotate-90" />
+                  </motion.div>
+                </button>
+                <motion.div
+                  initial={false}
+                  animate={{ height: openFaq === i ? 'auto' : 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="px-6 pb-5 text-white/70 leading-relaxed">
+                    {faq.a}
+                  </div>
+                </motion.div>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+
+        {/* CTA SECTION */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <motion.div
+            className="glass-strong rounded-3xl p-12 text-center"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+          >
+            <h2 className="text-4xl md:text-5xl font-black mb-6">
+              Start Creating SEO-Optimized Content Today
+            </h2>
+            <p className="text-xl text-white/70 mb-8 max-w-3xl mx-auto">
+              Join thousands of content creators using our AI writing tool to generate 
+              high-quality, SEO-optimized articles that rank on Google's first page.
+            </p>
+            <Link to="/dashboard">
+              <motion.button
+                className="px-10 py-5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-bold text-xl shadow-xl flex items-center gap-3 mx-auto"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Sparkles className="w-6 h-6" />
+                Try Free AI Writing Tool Now
+                <ArrowRight className="w-6 h-6" />
+              </motion.button>
+            </Link>
+            <p className="text-white/60 mt-6">
+              No credit card required • 1 free article per day • 3000+ words per article
+            </p>
+          </motion.div>
+        </section>
       </div>
-    </div>
+    </>
   )
 }
