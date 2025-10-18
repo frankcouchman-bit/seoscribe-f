@@ -19,11 +19,9 @@ export const useAuth = create((set, get) => ({
       const profile = await api.getProfile()
       console.log('[AUTH] Profile loaded:', profile.email, 'Plan:', profile.plan)
       
-      // Store plan in localStorage for immediate access
       localStorage.setItem('userPlan', profile.plan || 'free')
       localStorage.setItem('userEmail', profile.email)
       
-      // Initialize usage tracking
       get().initializeUsage()
       
       set({ 
@@ -54,11 +52,9 @@ export const useAuth = create((set, get) => ({
     try {
       const profile = await api.getProfile()
       
-      // Store plan in localStorage
       localStorage.setItem('userPlan', profile.plan || 'free')
       localStorage.setItem('userEmail', profile.email)
       
-      // Initialize usage tracking
       get().initializeUsage()
       
       set({ 
@@ -77,54 +73,53 @@ export const useAuth = create((set, get) => ({
     }
   },
 
-  // Initialize usage tracking in localStorage
   initializeUsage: () => {
     const today = new Date().toISOString().split('T')[0]
     const storedDate = localStorage.getItem('usage_date')
     
-    // Reset if new day
     if (storedDate !== today) {
       console.log('[USAGE] New day detected, resetting quotas')
       localStorage.setItem('usage_date', today)
       localStorage.setItem('generations_today', '0')
       localStorage.setItem('tools_used_today', '0')
-      localStorage.removeItem('demo_used')
-      localStorage.removeItem('demo_date')
     }
   },
 
-  // Get usage from localStorage
   getLocalUsage: () => {
     const today = new Date().toISOString().split('T')[0]
     const storedDate = localStorage.getItem('usage_date')
     
-    // Reset if different day
     if (storedDate !== today) {
       localStorage.setItem('usage_date', today)
       localStorage.setItem('generations_today', '0')
       localStorage.setItem('tools_used_today', '0')
-      return { today: { generations: 0, tools: 0 } }
+      return { today: { generations: 0, tools: 0 }, thisMonth: { total: 0 } }
     }
+    
+    const monthlyTotal = parseInt(localStorage.getItem('monthly_generations') || '0')
     
     return {
       today: {
         generations: parseInt(localStorage.getItem('generations_today') || '0'),
         tools: parseInt(localStorage.getItem('tools_used_today') || '0')
+      },
+      thisMonth: {
+        total: monthlyTotal
       }
     }
   },
 
-  // Increment generation count
   incrementGeneration: () => {
     const current = parseInt(localStorage.getItem('generations_today') || '0')
+    const monthly = parseInt(localStorage.getItem('monthly_generations') || '0')
     const newCount = current + 1
     localStorage.setItem('generations_today', String(newCount))
+    localStorage.setItem('monthly_generations', String(monthly + 1))
     console.log('[USAGE] Generation count:', newCount)
     
     set({ usage: get().getLocalUsage() })
   },
 
-  // Increment tool usage count
   incrementToolUsage: () => {
     const current = parseInt(localStorage.getItem('tools_used_today') || '0')
     const newCount = current + 1
@@ -136,21 +131,17 @@ export const useAuth = create((set, get) => ({
 
   refreshUsage: async () => {
     try {
-      // Try to get profile from backend
       const profile = await api.getProfile()
       
-      // Update plan if changed (e.g., after Stripe upgrade)
       if (profile.plan && profile.plan !== get().plan) {
         console.log('[USAGE] Plan updated from', get().plan, 'to', profile.plan)
         localStorage.setItem('userPlan', profile.plan)
         set({ plan: profile.plan })
       }
       
-      // Always use localStorage for usage tracking
       set({ usage: get().getLocalUsage() })
     } catch (error) {
       console.error('[USAGE] refreshUsage failed:', error)
-      // Still update from localStorage
       set({ usage: get().getLocalUsage() })
     }
   },
@@ -165,16 +156,26 @@ export const useAuth = create((set, get) => ({
       currentGenerations: usage.today.generations
     })
     
-    // Demo user check
+    // Demo user check - 1 MONTH LOCKOUT
     if (!user) {
       const demoUsed = localStorage.getItem('demo_used') === 'true'
       const demoDate = localStorage.getItem('demo_date')
-      const today = new Date().toISOString().split('T')[0]
       
-      if (demoDate !== today) {
-        localStorage.removeItem('demo_used')
-        localStorage.removeItem('demo_date')
-        return true
+      if (demoUsed && demoDate) {
+        const demoDateTime = new Date(demoDate).getTime()
+        const now = new Date().getTime()
+        const thirtyDays = 30 * 24 * 60 * 60 * 1000
+        
+        // If less than 30 days have passed, demo is still locked
+        if (now - demoDateTime < thirtyDays) {
+          console.log('[QUOTA] Demo locked for', Math.ceil((thirtyDays - (now - demoDateTime)) / (24 * 60 * 60 * 1000)), 'more days')
+          return false
+        } else {
+          // 30 days passed, reset demo
+          localStorage.removeItem('demo_used')
+          localStorage.removeItem('demo_date')
+          return true
+        }
       }
       
       return !demoUsed
@@ -209,6 +210,23 @@ export const useAuth = create((set, get) => ({
     }
     
     return false
+  },
+
+  getDemoTimeRemaining: () => {
+    const demoUsed = localStorage.getItem('demo_used') === 'true'
+    const demoDate = localStorage.getItem('demo_date')
+    
+    if (!demoUsed || !demoDate) return null
+    
+    const demoDateTime = new Date(demoDate).getTime()
+    const now = new Date().getTime()
+    const thirtyDays = 30 * 24 * 60 * 60 * 1000
+    const timeRemaining = thirtyDays - (now - demoDateTime)
+    
+    if (timeRemaining <= 0) return null
+    
+    const daysRemaining = Math.ceil(timeRemaining / (24 * 60 * 60 * 1000))
+    return daysRemaining
   },
 
   signOut: () => {
