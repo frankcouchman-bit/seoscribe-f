@@ -1,15 +1,27 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useEffect } from 'react'
-import { Sparkles, AlertCircle, Lock, UserPlus } from 'lucide-react'
+import { Sparkles, AlertCircle, Lock, UserPlus, FileText } from 'lucide-react'
 import { useArticles } from '../../hooks/useArticles'
 import { useAuth } from '../../hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-hot-toast'
 import AuthModal from '../auth/AuthModal'
+import { api } from '../../lib/api'
+
+const TEMPLATES = [
+  { id: 'default', name: 'Standard Article', icon: '📝', description: 'Comprehensive long-form content' },
+  { id: 'listicle', name: 'Listicle', icon: '📋', description: 'Top 10, Best 20 list format' },
+  { id: 'how-to-guide', name: 'How-To Guide', icon: '📚', description: 'Step-by-step instructions' },
+  { id: 'product-review', name: 'Product Review', icon: '⭐', description: 'Detailed analysis with pros/cons' },
+  { id: 'comparison-post', name: 'Comparison', icon: '⚖️', description: 'X vs Y side-by-side' },
+  { id: 'ultimate-guide', name: 'Ultimate Guide', icon: '📖', description: 'In-depth 3000+ word guide' },
+]
 
 export default function ArticleGenerator() {
   const [topic, setTopic] = useState('')
   const [websiteUrl, setWebsiteUrl] = useState('')
+  const [selectedTemplate, setSelectedTemplate] = useState('default')
+  const [showTemplates, setShowTemplates] = useState(false)
   const [headlines, setHeadlines] = useState([])
   const [selectedHeadline, setSelectedHeadline] = useState('')
   const [showHeadlines, setShowHeadlines] = useState(false)
@@ -67,11 +79,41 @@ export default function ArticleGenerator() {
     
     try {
       const finalTopic = selectedHeadline || topic
-      await generateArticle(finalTopic, websiteUrl)
-      navigate('/article/new')
+      
+      // Use template if not default
+      if (selectedTemplate !== 'default') {
+        const response = await api.generateFromTemplate({
+          template_id: selectedTemplate,
+          topic: finalTopic,
+          website_url: websiteUrl
+        })
+        
+        // Update usage manually
+        const { user, usage } = useAuth.getState()
+        const today = new Date().toISOString().split('T')[0]
+        
+        if (!user) {
+          localStorage.setItem('demo_used', 'true')
+          localStorage.setItem('demo_date', today)
+        } else {
+          const current = usage?.today?.generations || 0
+          localStorage.setItem('generation_count', String(current + 1))
+          localStorage.setItem('last_generation_date', today)
+        }
+        
+        useArticles.setState({ currentArticle: response })
+        await refreshUsage()
+        navigate('/article/new')
+      } else {
+        // Standard generation
+        await generateArticle(finalTopic, websiteUrl)
+        navigate('/article/new')
+      }
     } catch (error) {
       console.error('Generation failed:', error)
-      if (isDemoUser) {
+      await refreshUsage()
+      
+      if (isDemoUser && error.message.includes('Demo limit')) {
         setShowAuthModal(true)
       }
     }
@@ -165,6 +207,56 @@ export default function ArticleGenerator() {
         )}
 
         <form onSubmit={handleGenerate} className="space-y-4">
+          {/* TEMPLATE SELECTOR */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-semibold">Content Template</label>
+              <button
+                type="button"
+                onClick={() => setShowTemplates(!showTemplates)}
+                className="text-sm text-purple-400 hover:text-purple-300"
+              >
+                {showTemplates ? 'Hide' : 'Show'} templates
+              </button>
+            </div>
+            
+            <AnimatePresence>
+              {showTemplates && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="grid grid-cols-2 gap-3 mb-4"
+                >
+                  {TEMPLATES.map((template) => (
+                    <motion.button
+                      key={template.id}
+                      type="button"
+                      onClick={() => setSelectedTemplate(template.id)}
+                      className={`p-4 rounded-lg text-left transition-all ${
+                        selectedTemplate === template.id
+                          ? 'bg-purple-500/30 border-2 border-purple-500'
+                          : 'bg-white/5 border border-white/10 hover:bg-white/10'
+                      }`}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <div className="text-2xl mb-2">{template.icon}</div>
+                      <div className="font-semibold text-sm mb-1">{template.name}</div>
+                      <div className="text-xs text-white/60">{template.description}</div>
+                    </motion.button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {selectedTemplate !== 'default' && (
+              <div className="p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg text-sm">
+                <strong>Selected:</strong> {TEMPLATES.find(t => t.id === selectedTemplate)?.name}
+              </div>
+            )}
+          </div>
+
           <div>
             <label className="block text-sm font-semibold mb-2">Article Topic</label>
             <input
