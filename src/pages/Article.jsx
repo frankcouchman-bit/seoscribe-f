@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useArticles } from '../hooks/useArticles'
-import { ArrowLeft, Save, Download } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import EnhancedArticleView from '../components/article/EnhancedArticleView'
 import { api } from '../lib/api'
 import { toast } from 'react-hot-toast'
@@ -30,30 +30,32 @@ export default function Article() {
   const maxExpansions = plan === 'pro' || plan === 'enterprise' ? 6 : 2
 
   useEffect(() => {
-    console.log('[ARTICLE PAGE] Mounted')
-    console.log('[ARTICLE PAGE] ID:', id)
-    console.log('[ARTICLE PAGE] Current article exists:', !!currentArticle)
+    console.log('[ARTICLE] Mounted - ID:', id)
+    console.log('[ARTICLE] Has current article:', !!currentArticle)
+    console.log('[ARTICLE] User:', user?.email || 'Demo User')
     
     if (id === 'new') {
       if (!currentArticle) {
-        console.log('[ARTICLE PAGE] No article to display, redirecting...')
-        toast.error('No article to display')
-        setTimeout(() => navigate('/dashboard'), 1000)
+        console.log('[ARTICLE] No article to display')
+        toast.error('No article to display. Please generate an article first.')
+        navigate('/')
       } else {
-        console.log('[ARTICLE PAGE] Displaying new article:', currentArticle.title)
+        console.log('[ARTICLE] Displaying new article:', currentArticle.title)
       }
     } else if (id) {
-      console.log('[ARTICLE PAGE] Loading article by ID:', id)
+      if (!user) {
+        toast.error('Please sign in to view saved articles')
+        navigate('/')
+        return
+      }
+      
       setLoading(true)
       loadArticle(id)
-        .then(() => {
-          console.log('[ARTICLE PAGE] Article loaded')
-          setLoading(false)
-        })
+        .then(() => setLoading(false))
         .catch((error) => {
-          console.error('[ARTICLE PAGE] Load failed:', error)
-          setLoading(false)
+          console.error('[ARTICLE] Load failed:', error)
           toast.error('Failed to load article')
+          setLoading(false)
           navigate('/dashboard')
         })
     }
@@ -71,11 +73,7 @@ export default function Article() {
       toast.error('Sign up to save your articles!')
       return
     }
-    try {
-      await saveArticle(article)
-    } catch (error) {
-      console.error('[ARTICLE] Save failed:', error)
-    }
+    await saveArticle(article)
   }
 
   const handleExpand = async () => {
@@ -169,10 +167,10 @@ export default function Article() {
         <div className="text-center">
           <p className="text-xl text-white/60 mb-4">No article to display</p>
           <button
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate(user ? '/dashboard' : '/')}
             className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-bold"
           >
-            Go to Dashboard
+            {user ? 'Go to Dashboard' : 'Go Home'}
           </button>
         </div>
       </div>
@@ -185,13 +183,13 @@ export default function Article() {
     <div className="min-h-screen pt-20 pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.button
-          onClick={() => navigate('/dashboard')}
+          onClick={() => navigate(user ? '/dashboard' : '/')}
           className="flex items-center gap-2 text-white/80 hover:text-white transition-colors px-4 py-2 rounded-lg hover:bg-white/10 mb-8"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
         >
           <ArrowLeft className="w-5 h-5" />
-          Back to Dashboard
+          {user ? 'Back to Dashboard' : 'Back to Home'}
         </motion.button>
 
         {!user && (
@@ -200,15 +198,15 @@ export default function Article() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-4">
               <span className="font-semibold">
-                💡 Sign up free to save this article and get 1 article per day!
+                💡 Love what you see? Sign up free to save this article and get 1 article per day!
               </span>
               <button
                 onClick={() => navigate('/')}
-                className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-bold text-sm"
+                className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-bold"
               >
-                Sign Up
+                Sign Up Free
               </button>
             </div>
           </motion.div>
@@ -222,6 +220,7 @@ export default function Article() {
           >
             <span className="font-semibold">
               ⚠️ Maximum expansions reached ({expansionCount}/{maxExpansions})
+              {plan === 'free' && ' - Upgrade to Pro for 6 expansions!'}
             </span>
           </motion.div>
         )}
