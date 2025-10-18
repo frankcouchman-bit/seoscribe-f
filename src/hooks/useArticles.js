@@ -26,6 +26,11 @@ export const useArticles = create((set, get) => ({
 
   generateArticle: async (topic, websiteUrl) => {
     set({ generating: true })
+    
+    // Get current state BEFORE generating
+    const { user, usage, plan } = useAuth.getState()
+    const isDemoUser = !user
+    
     try {
       const response = await api.generateArticle({
         topic,
@@ -36,9 +41,25 @@ export const useArticles = create((set, get) => ({
         research: true
       })
       
-      // CRITICAL: Update usage from backend response
-      if (response.usage) {
-        useAuth.setState({ usage: response.usage })
+      // FORCE UPDATE USAGE IMMEDIATELY
+      if (isDemoUser) {
+        // Demo user - mark as used
+        localStorage.setItem('demo_used', 'true')
+        useAuth.setState({ 
+          usage: {
+            ...usage,
+            demo: { used: true, canGenerate: false }
+          }
+        })
+      } else {
+        // Authenticated user - increment counter
+        const currentCount = usage?.today?.generations || 0
+        useAuth.setState({ 
+          usage: {
+            ...usage,
+            today: { ...usage?.today, generations: currentCount + 1 }
+          }
+        })
       }
       
       set({ 
@@ -46,7 +67,7 @@ export const useArticles = create((set, get) => ({
         generating: false 
       })
       
-      toast.success('✨ Article generated successfully!')
+      toast.success('✨ Article generated!')
       
       setTimeout(() => {
         get().fetchArticles()
@@ -84,7 +105,7 @@ export const useArticles = create((set, get) => ({
       get().fetchArticles()
       return saved
     } catch (error) {
-      toast.error('Failed to save')
+      toast.error('Failed to save: ' + error.message)
       throw error
     }
   },
