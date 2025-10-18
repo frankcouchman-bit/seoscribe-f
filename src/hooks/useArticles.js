@@ -36,7 +36,7 @@ export const useArticles = create((set, get) => ({
         research: true
       })
       
-      // UPDATE USAGE FROM RESPONSE
+      // CRITICAL: Update usage from backend response
       if (response.usage) {
         useAuth.setState({ usage: response.usage })
       }
