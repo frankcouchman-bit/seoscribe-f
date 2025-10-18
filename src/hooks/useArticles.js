@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { api } from '../lib/api'
 import { toast } from 'react-hot-toast'
+import { useAuth } from './useAuth'
 
 export const useArticles = create((set, get) => ({
   articles: [],
@@ -26,38 +27,46 @@ export const useArticles = create((set, get) => ({
   generateArticle: async (topic, websiteUrl) => {
     set({ generating: true })
     try {
-      const article = await api.generateArticle({
+      const response = await api.generateArticle({
         topic,
         website_url: websiteUrl,
         tone: 'professional',
+        target_word_count: 3000,
         generate_social: true,
         research: true
       })
       
-      set({ currentArticle: article, generating: false })
+      // CRITICAL: Handle usage returned in response
+      if (response.usage) {
+        useAuth.setState({ usage: response.usage })
+      }
+      
+      set({ 
+        currentArticle: response, 
+        generating: false 
+      })
+      
       toast.success('✨ Article generated successfully!')
       
-      // Fetch articles after a short delay
+      // Fetch articles list after generation
       setTimeout(() => {
         get().fetchArticles()
       }, 1000)
       
-      return article
+      return response
     } catch (error) {
       set({ generating: false })
       
       if (error.message.includes('Quota exceeded') || 
           error.message.includes('limit reached') || 
           error.message.includes('Daily limit')) {
-        toast.error('Daily limit reached! Upgrade to Pro for 15 articles/day.', {
+        toast.error('Daily limit reached! Upgrade for more articles.', {
           duration: 5000
         })
       } else if (error.message.includes('Demo limit')) {
         toast.error('Demo limit reached! Sign up for 1 free article/day.', {
           duration: 5000
         })
-      } else if (error.message.includes('Sign in') || error.message.includes('Unauthorized')) {
-        toast.error('Please sign in to generate articles')
       } else {
         toast.error(error.message || 'Generation failed')
       }
