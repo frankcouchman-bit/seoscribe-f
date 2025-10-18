@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useEffect } from 'react'
-import { Sparkles, AlertCircle, Lock, UserPlus } from 'lucide-react'
+import { Sparkles, AlertCircle, Lock, UserPlus, RefreshCw } from 'lucide-react'
 import { useArticles } from '../../hooks/useArticles'
 import { useAuth } from '../../hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
@@ -25,17 +25,20 @@ export default function ArticleGenerator() {
   const currentGenerations = usage?.today?.generations || 0
   const maxGenerations = plan === 'pro' ? 15 : 1
 
-  // Refresh usage on mount and every 5 seconds during generation
+  // Refresh usage on mount
   useEffect(() => {
     refreshUsage()
-    
+  }, [])
+
+  // Poll usage during generation
+  useEffect(() => {
     if (generating) {
       const interval = setInterval(() => {
         refreshUsage()
       }, 2000)
       return () => clearInterval(interval)
     }
-  }, [generating, refreshUsage])
+  }, [generating])
 
   const generateHeadlines = () => {
     if (!topic.trim()) {
@@ -59,7 +62,7 @@ export default function ArticleGenerator() {
     e.preventDefault()
     if (!topic.trim()) return
     
-    // Check if demo user has already used their demo
+    // Check demo usage
     if (isDemoUser && demoUsed) {
       setShowAuthModal(true)
       return
@@ -69,7 +72,7 @@ export default function ArticleGenerator() {
       if (isDemoUser) {
         setShowAuthModal(true)
       } else {
-        toast.error('Daily limit reached! Upgrade to Pro for 15 articles/day.')
+        toast.error('Daily limit reached!')
       }
       return
     }
@@ -78,19 +81,15 @@ export default function ArticleGenerator() {
       const finalTopic = selectedHeadline || topic
       await generateArticle(finalTopic, websiteUrl)
       
-      // Force multiple refreshes to ensure UI updates
+      // Force refresh
       await refreshUsage()
-      setTimeout(() => refreshUsage(), 1000)
-      setTimeout(() => refreshUsage(), 2000)
       
       // Navigate to article
       navigate('/article/new')
     } catch (error) {
       console.error('Generation failed:', error)
-      // Refresh usage even on error
       await refreshUsage()
       
-      // If demo limit error, show auth modal
       if (isDemoUser && error.message.includes('Demo limit')) {
         setShowAuthModal(true)
       }
@@ -113,58 +112,72 @@ export default function ArticleGenerator() {
               <h2 className="text-2xl font-bold">Generate Article</h2>
               <p className="text-white/60">
                 {isDemoUser 
-                  ? demoUsed ? 'Demo used - Sign up for daily articles' : 'Try free demo'
+                  ? demoUsed ? 'Demo used - Sign up for daily articles' : '1 free demo article'
                   : 'Create SEO-optimized content'
                 }
               </p>
             </div>
           </div>
           
-          {/* Usage Counter */}
-          <motion.div 
-            className="text-right"
-            key={`${currentGenerations}-${maxGenerations}`}
-            initial={{ scale: 1 }}
-            animate={{ scale: [1, 1.1, 1] }}
-            transition={{ duration: 0.3 }}
-          >
-            <div className="text-3xl font-black gradient-text">
-              {currentGenerations}/{maxGenerations}
-            </div>
-            <div className="text-sm text-white/60">
-              {isDemoUser ? 'Demo' : 'Today'}
-            </div>
-          </motion.div>
+          {/* Usage Counter with Animation */}
+          <div className="flex items-center gap-4">
+            <motion.button
+              onClick={refreshUsage}
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              whileHover={{ rotate: 180 }}
+              transition={{ duration: 0.3 }}
+            >
+              <RefreshCw className="w-4 h-4 text-white/60" />
+            </motion.button>
+            
+            <motion.div 
+              className="text-right"
+              key={`${currentGenerations}-${maxGenerations}`}
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 500 }}
+            >
+              <div className="text-3xl font-black gradient-text">
+                {currentGenerations}/{maxGenerations}
+              </div>
+              <div className="text-sm text-white/60">
+                {isDemoUser ? 'Demo' : 'Today'}
+              </div>
+            </motion.div>
+          </div>
         </div>
 
         {/* Demo Used CTA */}
-        {isDemoUser && demoUsed && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            className="mb-6 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-xl p-6"
-          >
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center flex-shrink-0">
-                <UserPlus className="w-6 h-6" />
+        <AnimatePresence>
+          {isDemoUser && demoUsed && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mb-6 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-xl p-6"
+            >
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <UserPlus className="w-6 h-6" />
+                </div>
+                <div className="flex-1">
+                  <div className="font-bold text-xl mb-2">You've Used Your Free Demo! 🎉</div>
+                  <p className="text-white/70 mb-4">
+                    Love what you see? Sign up now and get <strong>1 free article every day</strong> - forever!
+                  </p>
+                  <motion.button
+                    onClick={() => setShowAuthModal(true)}
+                    className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-bold shadow-lg"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    Sign Up Free - Get 1 Article Daily →
+                  </motion.button>
+                </div>
               </div>
-              <div className="flex-1">
-                <div className="font-bold text-xl mb-2">You've Used Your Free Demo! 🎉</div>
-                <p className="text-white/70 mb-4">
-                  Love what you see? Sign up now and get <strong>1 free article every day</strong> - forever!
-                </p>
-                <motion.button
-                  onClick={() => setShowAuthModal(true)}
-                  className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-bold shadow-lg"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Sign Up Free - Get 1 Article Daily →
-                </motion.button>
-              </div>
-            </div>
-          </motion.div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Daily Limit Reached */}
         {!isDemoUser && !canCreate && (
