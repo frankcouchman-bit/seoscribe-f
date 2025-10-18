@@ -37,12 +37,14 @@ export const useArticles = create((set, get) => ({
         research: true
       })
       
-      // UPDATE COUNTER AFTER GENERATION
+      // UPDATE COUNTER + SAVE DATE
       const { user, usage } = useAuth.getState()
+      const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD
       
       if (!user) {
-        // Demo user
+        // Demo user - save with date
         localStorage.setItem('demo_used', 'true')
+        localStorage.setItem('demo_date', today)
         useAuth.setState({
           usage: {
             ...usage,
@@ -50,12 +52,27 @@ export const useArticles = create((set, get) => ({
           }
         })
       } else {
-        // Signed in user
-        const current = usage?.today?.generations || 0
+        // Signed in user - increment and save date
+        const lastDate = localStorage.getItem('last_generation_date')
+        let currentCount = 0
+        
+        // Reset if new day
+        if (lastDate !== today) {
+          currentCount = 0
+          localStorage.setItem('last_generation_date', today)
+        } else {
+          currentCount = parseInt(localStorage.getItem('generation_count') || '0', 10)
+        }
+        
+        // Increment
+        const newCount = currentCount + 1
+        localStorage.setItem('generation_count', String(newCount))
+        localStorage.setItem('last_generation_date', today)
+        
         useAuth.setState({
           usage: {
             ...usage,
-            today: { ...usage?.today, generations: current + 1 }
+            today: { ...usage?.today, generations: newCount }
           }
         })
       }
